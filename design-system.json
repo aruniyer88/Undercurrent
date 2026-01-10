@@ -1,0 +1,699 @@
+{
+  "meta": {
+    "name": "Design Undercurrent — Next.js (shadcn/ui) Design System",
+    "purpose": "Single source of truth for the app’s visual language and component styling. This is intended for AI and humans to build new UI that matches existing UI exactly.",
+    "scope": "Next.js (App Router) + TypeScript + Tailwind CSS + shadcn/ui",
+    "updated_at": "2026-01-07",
+    "target_stack": {
+      "framework": "Next.js (App Router)",
+      "language": "TypeScript",
+      "styling": "Tailwind CSS",
+      "ui_primitives": "shadcn/ui (Radix UI)",
+      "icons": "lucide-react",
+      "recommended_project_structure": {
+        "app_router_root": "src/app",
+        "global_css": "src/app/globals.css",
+        "tailwind_config": "tailwind.config.ts",
+        "shadcn_components": "src/components/ui",
+        "app_components": "src/components",
+        "utils": "src/lib/utils.ts"
+      }
+    },
+    "style_personality": [
+      "Enterprise SaaS",
+      "Analytical, data-dense but calm",
+      "Crisp, modern, unobtrusive",
+      "Trustworthy and operational",
+      "Minimal ornamentation; strong hierarchy"
+    ],
+    "core_principles": [
+      "Hierarchy through scale, weight, and whitespace—not heavy borders.",
+      "Default to neutral surfaces; reserve saturated color for actions and key metrics.",
+      "Prefer subtle separators (1px hairlines) and soft shadows for layering.",
+      "Controls are compact and consistent; minimize vertical jitter.",
+      "Tables are the primary canvas; charts are secondary context."
+    ],
+    "anti_patterns": [
+      "No heavy skeuomorphism, glassmorphism, neon gradients, or thick outlines.",
+      "Avoid large corner radii or pill-everything styling; keep radii restrained.",
+      "Avoid high-contrast dark text on saturated backgrounds except for KPI tiles where text is white."
+    ]
+  },
+  "sources_of_truth": {
+    "tailwind_config": "tailwind.config.ts",
+    "global_css": "src/app/globals.css",
+    "shadcn_components_dir": "src/components/ui",
+    "app_components_dir": "src/components",
+    "utils": "src/lib/utils.ts (cn helper, shared utilities)",
+    "design_system_spec": "design/design-system.json (this file)",
+    "reference_spec": "design.json (legacy spec; not fully accurate for spacing/control heights)"
+  },
+  "foundations": {
+    "shadcn_theme_mapping": {
+      "strategy": "tailwind_tokens_primary",
+      "source_of_truth": [
+        "tailwind.config.ts (colors, spacing overrides, radii, shadows, font sizes)",
+        "src/app/globals.css (base typography only; should NOT become the primary token store)"
+      ],
+      "intent": "Use shadcn/ui for accessibility + behavior (Radix primitives), but style shadcn components using THIS design system’s explicit Tailwind tokens (bg-surface, text-text-primary, border-border-subtle, etc.). Avoid adopting shadcn’s default semantic token system (bg-background/text-foreground) as the primary styling layer.",
+      "non_goals": [
+        "Do not migrate the design system to CSS-variable-first theming.",
+        "Do not introduce new semantic color layers (background/foreground) that duplicate the explicit tokens."
+      ],
+      "enforcement_rules": [
+        "When adding shadcn components, immediately replace default template classes (bg-background, text-foreground, border-input, ring-ring, etc.) with explicit project tokens from foundations.color_tokens and foundations.focus_and_accessibility.",
+        "Do not add new hex values in shadcn components; if a token doesn’t exist, add it to tailwind.config.ts (then reference it by name).",
+        "Keep shadcn component structure/ARIA behavior intact; only change classes, variants, and sizes.",
+        "Prefer updating shadcn components in src/components/ui to match this system once, rather than adding one-off overrides at call sites."
+      ],
+      "compatibility_layer": {
+        "purpose": "A deterministic mapping so newly generated shadcn components can be normalized to your token set quickly and consistently.",
+        "replace_these_shadcn_classes": [
+          "bg-background",
+          "text-foreground",
+          "border-border",
+          "border-input",
+          "bg-card",
+          "text-card-foreground",
+          "bg-popover",
+          "text-popover-foreground",
+          "bg-muted",
+          "text-muted-foreground",
+          "ring-ring",
+          "bg-primary",
+          "text-primary-foreground",
+          "bg-secondary",
+          "text-secondary-foreground"
+        ],
+        "with_these_project_tokens": {
+          "bg-background": "bg-canvas (page) or bg-surface (inside cards/panels)",
+          "text-foreground": "text-text-primary",
+          "bg-card": "bg-surface",
+          "text-card-foreground": "text-text-primary",
+          "bg-popover": "bg-surface",
+          "text-popover-foreground": "text-text-primary",
+          "bg-muted": "bg-surface-alt",
+          "text-muted-foreground": "text-text-muted",
+          "border-border": "border-border-subtle",
+          "border-input": "border-border-subtle",
+          "ring-ring": "ring-primary-border",
+          "bg-primary": "bg-primary-600",
+          "text-primary-foreground": "text-white",
+          "bg-secondary": "bg-surface",
+          "text-secondary-foreground": "text-text-primary"
+        },
+        "component_normalization": {
+          "button": {
+            "base": "inline-flex items-center justify-center gap-2 font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-primary-border focus:ring-offset-2 disabled:opacity-45 disabled:cursor-not-allowed",
+            "size_sm": "h-8 px-3 text-body-strong rounded-sm",
+            "size_md": "h-9 px-4 text-body-strong rounded-sm",
+            "variant_default_primary": "bg-primary-600 text-white border border-transparent hover:bg-primary-700",
+            "variant_secondary": "bg-[#6B7280] text-white border border-transparent hover:bg-[#4B5563]",
+            "variant_outline": "bg-primary-600 text-white border border-primary-700 hover:bg-primary-700",
+            "variant_ghost": "bg-primary-600/80 text-white border border-transparent hover:bg-primary-600",
+            "variant_destructive": "bg-danger-600 text-white border border-transparent hover:bg-[#DC2626]"
+          },
+          "input": {
+            "base": "w-full bg-surface border border-border-subtle rounded-sm text-body placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary-border focus:border-transparent transition-colors",
+            "size_sm": "h-8 px-3",
+            "size_md": "h-9 px-3"
+          },
+          "card": {
+            "container": "bg-surface border border-border-subtle rounded-lg shadow-sm",
+            "content_padding": "p-4"
+          },
+          "separator": {
+            "base": "bg-border-subtle"
+          }
+        }
+      },
+      "notes": [
+        "This approach intentionally diverges from shadcn’s default CSS-variable theme model; that’s expected.",
+        "If you later add dark mode, do it by providing a second set of explicit Tailwind tokens (or a controlled token switch), not by reverting to shadcn’s semantic variables."
+      ]
+    },
+    "color_tokens": {
+      "neutrals": {
+        "canvas": "#F5F7FB",
+        "surface": "#FFFFFF",
+        "surface_alt": "#F9FAFC",
+        "border_subtle": "#E6EAF2",
+        "border_strong": "#D6DCE8",
+        "text_primary": "#111827",
+        "text_secondary": "#4B5563",
+        "text_muted": "#6B7280",
+        "icon_default": "#6B7280",
+        "icon_strong": "#374151"
+      },
+      "brand": {
+        "primary_50": "#EFF6FF",
+        "primary_600": "#2563EB",
+        "primary_700": "#1D4ED8",
+        "primary_border": "#93C5FD"
+      },
+      "semantic": {
+        "success_50": "#ECFDF5",
+        "success_600": "#10B981",
+        "success_700": "#059669",
+        "warning_50": "#FFFBEB",
+        "warning_600": "#F59E0B",
+        "danger_50": "#FEF2F2",
+        "danger_600": "#EF4444",
+        "info_50": "#F0F9FF",
+        "info_600": "#0EA5E9"
+      },
+      "data_viz": {
+        "viz_blue": "#3B82F6",
+        "viz_green": "#10B981",
+        "viz_teal": "#14B8A6",
+        "viz_indigo": "#6366F1",
+        "gridline": "#E9EDF5",
+        "axis_text": "#6B7280"
+      },
+      "dark_chrome": {
+        "topbar_bg": "#0F172A",
+        "topbar_text": "#E5E7EB",
+        "topbar_icon": "#CBD5E1"
+      },
+      "table": {
+        "table_hover": "#F3F6FB",
+        "selected_row": "#EEF2FF"
+      },
+      "usage_rules": [
+        "Primary actions use primary_600 with white text; hover uses primary_700.",
+        "Most surfaces remain white; use canvas as page background for subtle separation.",
+        "Borders are hairline and subtle; default to border_subtle.",
+        "Status badges use tinted semantic_50 backgrounds with darker semantic_700 text.",
+        "Use saturated colors (viz_* / semantic_*) sparingly to preserve calm enterprise feel."
+      ]
+    },
+    "typography": {
+      "font_family": {
+        "sans": "Inter, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif",
+        "mono": "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace"
+      },
+      "tailwind_base": {
+        "body": "font-sans text-body text-text-primary antialiased"
+      },
+      "type_scale": {
+        "display": {
+          "font_size_px": 28,
+          "line_height_px": 34,
+          "letter_spacing_em": -0.01,
+          "font_weight": 700,
+          "tailwind_class": "text-display"
+        },
+        "h1": {
+          "font_size_px": 24,
+          "line_height_px": 30,
+          "letter_spacing_em": -0.01,
+          "font_weight": 700,
+          "tailwind_class": "text-h1"
+        },
+        "h2": {
+          "font_size_px": 20,
+          "line_height_px": 26,
+          "letter_spacing_em": -0.01,
+          "font_weight": 700,
+          "tailwind_class": "text-h2"
+        },
+        "h3": {
+          "font_size_px": 16,
+          "line_height_px": 22,
+          "letter_spacing_em": 0,
+          "font_weight": 600,
+          "tailwind_class": "text-h3"
+        },
+        "body": {
+          "font_size_px": 14,
+          "line_height_px": 20,
+          "font_weight": 400,
+          "tailwind_class": "text-body"
+        },
+        "body_strong": {
+          "font_size_px": 14,
+          "line_height_px": 20,
+          "font_weight": 600,
+          "tailwind_class": "text-body-strong"
+        },
+        "caption": {
+          "font_size_px": 12,
+          "line_height_px": 16,
+          "letter_spacing_em": 0.01,
+          "font_weight": 400,
+          "tailwind_class": "text-caption"
+        },
+        "label": {
+          "font_size_px": 12,
+          "line_height_px": 16,
+          "letter_spacing_em": 0.02,
+          "font_weight": 600,
+          "tailwind_class": "text-label"
+        }
+      },
+      "hierarchy_rules": [
+        "Use h1 for page titles; h3 for section/card titles.",
+        "Use label for form field labels and table headers; use caption for meta and helper text.",
+        "KPI values use custom sizing (18px / 22px) with font-bold (700)."
+      ]
+    },
+    "spacing_and_sizing": {
+      "system": "8pt grid with 4pt sub-steps, implemented via customized Tailwind numeric spacing keys 0–10.",
+      "tailwind_spacing_override_px": {
+        "0": 0,
+        "1": 4,
+        "2": 8,
+        "3": 12,
+        "4": 16,
+        "5": 20,
+        "6": 24,
+        "7": 32,
+        "8": 40,
+        "9": 48,
+        "10": 64
+      },
+      "important_note": "This project overrides Tailwind’s default spacing keys 7–10. For example, h-9 == 48px and h-8 == 40px in this codebase. Keys not overridden (e.g. 11) remain Tailwind defaults (h-11 == 44px).",
+      "common_layouts": {
+        "page_container": {
+          "tailwind": "max-w-[1600px] mx-auto p-6 space-y-6",
+          "notes": "p-6 == 24px; space-y-6 == 24px due to spacing override."
+        },
+        "topbar_height_px": 56,
+        "sidebar_width_px": 260
+      },
+      "control_sizes": {
+        "button_sm": {
+          "height_px": 40,
+          "tailwind_height": "h-8",
+          "padding_x_px": 12,
+          "tailwind_padding_x": "px-3"
+        },
+        "button_md": {
+          "height_px": 48,
+          "tailwind_height": "h-9",
+          "padding_x_px": 16,
+          "tailwind_padding_x": "px-4"
+        },
+        "input_sm": {
+          "height_px": 40,
+          "tailwind_height": "h-8",
+          "padding_x_px": 12,
+          "tailwind_padding_x": "px-3"
+        },
+        "input_md": {
+          "height_px": 48,
+          "tailwind_height": "h-9",
+          "padding_x_px": 12,
+          "tailwind_padding_x": "px-3"
+        },
+        "select_default": {
+          "height_px": 40,
+          "tailwind_height": "h-8",
+          "padding_left_px": 12,
+          "padding_right_px": 36,
+          "tailwind": "h-8 pl-3 pr-9"
+        },
+        "table_row_height_px": 44,
+        "table_row_tailwind": "h-11"
+      }
+    },
+    "radii": {
+      "tailwind_border_radius": {
+        "rounded_xs": "4px",
+        "rounded_sm": "6px",
+        "rounded_md": "8px",
+        "rounded_lg": "10px",
+        "rounded_xl": "12px"
+      },
+      "defaults": {
+        "controls": "rounded-sm (6px)",
+        "menus_and_icon_buttons": "rounded-md (8px)",
+        "cards_and_panels": "rounded-lg (10px)",
+        "modals": "rounded-xl (12px)",
+        "pills": "rounded-full"
+      }
+    },
+    "elevation": {
+      "shadow_tokens": {
+        "sm": "0 1px 2px rgba(16, 24, 40, 0.06)",
+        "md": "0 4px 10px rgba(16, 24, 40, 0.10)",
+        "lg": "0 12px 24px rgba(16, 24, 40, 0.14)"
+      },
+      "usage_rules": [
+        "Cards use shadow-sm with subtle border.",
+        "Toasts use shadow-md with subtle border and left accent border.",
+        "Modals use shadow-lg with overlay scrim."
+      ]
+    },
+    "focus_and_accessibility": {
+      "contrast_targets": {
+        "normal_text_min": "4.5:1",
+        "large_text_min": "3:1",
+        "ui_controls_min": "3:1"
+      },
+      "focus_ring": {
+        "tailwind_pattern": "focus:outline-none focus:ring-2 focus:ring-primary-border focus:ring-offset-2",
+        "ring_color": "#93C5FD",
+        "offset": "2px",
+        "offset_color": "#FFFFFF"
+      },
+      "hit_targets_px": {
+        "min": 40,
+        "icon_buttons": 48
+      }
+    },
+    "icons": {
+      "library": "lucide-react",
+      "style": "Outline icons",
+      "common_sizes_px": {
+        "sm": 16,
+        "md": 20,
+        "lg": 48
+      },
+      "color_tokens": {
+        "default": "text-icon-default",
+        "strong": "text-icon-strong",
+        "topbar": "text-topbar-icon"
+      }
+    },
+    "motion": {
+      "approach": "Minimal and enterprise-calm; transitions are primarily color changes on hover/focus.",
+      "tailwind_usage": [
+        "transition-colors",
+        "transition-transform",
+        "animate-spin"
+      ],
+      "avoid": [
+        "Bouncy overshoot",
+        "Overly long durations",
+        "Distracting parallax"
+      ]
+    }
+  },
+  "layout": {
+    "app_shell": {
+      "page_background": "bg-canvas",
+      "topbar": {
+        "height_px": 56,
+        "tailwind": "h-[56px] bg-topbar-bg text-topbar-text flex items-center justify-between px-4 border-b border-topbar-text/10"
+      },
+      "sidebar": {
+        "width_px": 260,
+        "tailwind": "w-[260px] h-full bg-surface border-r border-border-subtle flex flex-col"
+      },
+      "content": {
+        "scroll": "overflow-y-auto",
+        "container": "max-w-[1600px] mx-auto p-6 space-y-6"
+      }
+    }
+  },
+  "components": {
+    "Button": {
+      "file": "src/components/ui/button.tsx",
+      "base_classes": "inline-flex items-center justify-center gap-2 font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-primary-border focus:ring-offset-2 disabled:opacity-45 disabled:cursor-not-allowed",
+      "sizes": {
+        "sm": {
+          "classes": "h-8 px-3 text-body-strong rounded-sm",
+          "height_px": 40,
+          "radius_px": 6
+        },
+        "md": {
+          "classes": "h-9 px-4 text-body-strong rounded-sm",
+          "height_px": 48,
+          "radius_px": 6
+        }
+      },
+      "variants": {
+        "primary": {
+          "classes": "bg-primary-600 text-white border border-transparent hover:bg-primary-700"
+        },
+        "secondary": {
+          "classes": "bg-[#6B7280] text-white border border-transparent hover:bg-[#4B5563]"
+        },
+        "outline": {
+          "classes": "bg-primary-600 text-white border border-primary-700 hover:bg-primary-700"
+        },
+        "ghost": {
+          "classes": "bg-primary-600/80 text-white border border-transparent hover:bg-primary-600"
+        },
+        "danger": {
+          "classes": "bg-danger-600 text-white border border-transparent hover:bg-[#DC2626]"
+        }
+      },
+      "icon": {
+        "wrapper_class": "inline-flex",
+        "common_icon_size_px": 16
+      }
+    },
+    "IconButton": {
+      "file": "src/components/ui/button.tsx (use size=\"icon\" variant) OR src/components/IconButton.tsx (wrapper)",
+      "classes": "w-9 h-9 inline-flex items-center justify-center rounded-md hover:bg-surface-alt transition-colors focus:outline-none focus:ring-2 focus:ring-primary-border focus:ring-offset-2",
+      "size_px": 48,
+      "radius_px": 8
+    },
+    "Input": {
+      "file": "src/components/ui/input.tsx",
+      "sizes": {
+        "sm": {
+          "classes": "h-8 px-3",
+          "height_px": 40
+        },
+        "md": {
+          "classes": "h-9 px-3",
+          "height_px": 48
+        }
+      },
+      "input_classes": "w-full bg-surface border border-border-subtle rounded-sm text-body placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary-border focus:border-transparent transition-colors",
+      "with_icon": {
+        "container": "relative",
+        "icon_wrap": "absolute left-3 top-1/2 -translate-y-1/2 text-icon-default",
+        "icon_padding_left": "pl-10"
+      }
+    },
+    "Select": {
+      "file": "src/components/ui/select.tsx (shadcn/ui) OR src/components/Select.tsx (thin wrapper)",
+      "classes": "h-8 pl-3 pr-9 bg-surface border border-border-subtle rounded-md text-body appearance-none cursor-pointer hover:bg-surface-alt focus:outline-none focus:ring-2 focus:ring-primary-border transition-colors",
+      "icon": {
+        "classes": "absolute right-3 top-1/2 -translate-y-1/2 text-icon-default pointer-events-none",
+        "size_px": 16
+      }
+    },
+    "Card": {
+      "file": "src/components/ui/card.tsx",
+      "container_classes": "bg-surface border border-border-subtle rounded-lg shadow-sm p-4",
+      "title_row": {
+        "wrap_classes": "flex items-center justify-between mb-4",
+        "title_classes": "text-h3 text-text-primary",
+        "actions_wrap": "flex items-center gap-2"
+      }
+    },
+    "Tabs": {
+      "file": "src/components/ui/tabs.tsx",
+      "container_classes": "flex border-b border-border-subtle",
+      "tab_button_classes": "h-10 px-4 text-body relative hover:bg-surface-alt transition-colors",
+      "active": {
+        "text_class": "text-text-primary",
+        "indicator": "absolute bottom-0 left-0 right-0 h-0.5 bg-primary-600"
+      },
+      "inactive": {
+        "text_class": "text-text-secondary"
+      }
+    },
+    "StatusBadge": {
+      "file": "src/components/StatusBadge.tsx (custom wrapper over shadcn/ui Badge or plain span)",
+      "base_classes": "inline-flex items-center gap-1.5 h-5 px-2 rounded-full text-caption",
+      "dot_classes": "w-1.5 h-1.5 rounded-full",
+      "variants": {
+        "live": {
+          "bg": "bg-success-50",
+          "text": "text-success-700",
+          "dot": "bg-success-600",
+          "label": "Live"
+        },
+        "in_progress": {
+          "bg": "bg-surface-alt",
+          "text": "text-text-secondary",
+          "dot": "bg-warning-600",
+          "label": "In Progress"
+        },
+        "paused": {
+          "bg": "bg-warning-50",
+          "text": "text-[#B45309]",
+          "dot": "bg-warning-600",
+          "label": "Paused"
+        }
+      }
+    },
+    "ToggleSwitch": {
+      "file": "src/components/ui/switch.tsx (shadcn/ui) OR src/components/ToggleSwitch.tsx (styled wrapper)",
+      "container": "flex items-center gap-3 cursor-pointer",
+      "input": "sr-only peer",
+      "track": "w-[42px] h-[22px] bg-[#CBD5E1] rounded-full peer-checked:bg-primary-600 transition-colors peer-focus:ring-2 peer-focus:ring-primary-border",
+      "thumb": "absolute top-[2px] left-[2px] w-[18px] h-[18px] bg-white rounded-full transition-transform peer-checked:translate-x-[20px] shadow-sm",
+      "label": "text-body text-text-primary"
+    },
+    "KPIStatTile": {
+      "file": "src/components/KPIStatTile.tsx",
+      "container_base": "min-w-[150px] h-14 px-3 rounded-md flex flex-col justify-center",
+      "variants": {
+        "neutral": "bg-surface border border-border-subtle text-text-primary",
+        "blue": "bg-viz-blue border-0 text-white",
+        "green": "bg-viz-green border-0 text-white"
+      },
+      "label": {
+        "classes_neutral": "text-caption text-text-muted mb-1",
+        "classes_saturated": "text-caption text-white/85 mb-1"
+      },
+      "value": {
+        "classes": "text-[18px] leading-[22px] font-bold"
+      },
+      "trend": {
+        "classes_base": "text-caption",
+        "positive": "text-success-600",
+        "negative": "text-danger-600"
+      }
+    },
+    "Table": {
+      "file": "src/components/ui/table.tsx (base) + src/components/DataTable.tsx (composition, sorting/selection)",
+      "container": "bg-surface border border-border-subtle rounded-lg overflow-hidden",
+      "thead": "bg-surface-alt border-b border-border-subtle",
+      "th": {
+        "checkbox_cell": "w-12 px-3 py-2.5 text-left",
+        "column": "px-3 py-2.5 text-left text-label text-text-secondary cursor-pointer hover:bg-surface-alt/50"
+      },
+      "checkbox": "w-4 h-4 rounded border-border-subtle text-primary-600 focus:ring-2 focus:ring-primary-border",
+      "row": {
+        "classes": "h-11 border-b border-border-subtle last:border-b-0 hover:bg-table-hover transition-colors",
+        "selected_bg_class": "bg-selected-row"
+      },
+      "cell": "px-3 py-2.5 text-body text-text-primary",
+      "sort_icon": {
+        "size_px": 14,
+        "class": "text-icon-default"
+      }
+    },
+    "AppTopbar": {
+      "file": "src/components/AppTopbar.tsx",
+      "container": "h-[56px] bg-topbar-bg text-topbar-text flex items-center justify-between px-4 border-b border-topbar-text/10",
+      "brand": {
+        "mark": "w-8 h-8 bg-primary-600 rounded-md flex items-center justify-center",
+        "mark_text": "text-white font-bold text-sm",
+        "product_name": "font-semibold text-base"
+      },
+      "primary_action_button": "h-9 px-4 bg-primary-600 hover:bg-primary-700 text-white rounded-sm font-semibold text-body-strong flex items-center gap-2 transition-colors",
+      "utility_icon_button": "w-9 h-9 flex items-center justify-center rounded-md hover:bg-white/10 transition-colors"
+    },
+    "Modal": {
+      "file": "src/components/ui/dialog.tsx (shadcn/ui) + src/components/Modal.tsx (composition)",
+      "overlay": "absolute inset-0 bg-[rgba(17,24,39,0.45)]",
+      "panel": "relative w-[720px] max-w-[90vw] max-h-[90vh] bg-surface rounded-xl shadow-lg p-5 overflow-y-auto",
+      "header": {
+        "wrap": "flex items-center justify-between mb-4",
+        "title": "text-h2 text-text-primary",
+        "close_button": "w-9 h-9 flex items-center justify-center rounded-md hover:bg-surface-alt transition-colors",
+        "close_icon": "text-icon-default"
+      },
+      "content_spacing": "mb-6",
+      "actions": "flex items-center justify-end gap-3"
+    },
+    "Toast": {
+      "file": "src/components/ui/sonner.tsx (recommended) OR src/components/ui/toast.tsx (legacy shadcn)",
+      "container_base": "min-w-[320px] bg-surface border border-border-subtle border-l-4 rounded-lg shadow-md p-3 flex items-start gap-3",
+      "variants": {
+        "success": {
+          "accent": "border-l-success-600",
+          "icon_color": "text-success-600"
+        },
+        "error": {
+          "accent": "border-l-danger-600",
+          "icon_color": "text-danger-600"
+        },
+        "info": {
+          "accent": "border-l-info-600",
+          "icon_color": "text-info-600"
+        }
+      },
+      "message": "text-body text-text-primary",
+      "close": "text-icon-default hover:text-icon-strong transition-colors"
+    },
+    "Pagination": {
+      "file": "src/components/ui/pagination.tsx",
+      "container": "flex items-center justify-between h-11 px-4 text-text-secondary",
+      "page_text": "text-body",
+      "nav_button": "w-9 h-9 flex items-center justify-center rounded-md hover:bg-surface-alt disabled:opacity-45 disabled:cursor-not-allowed transition-colors",
+      "page_button": "w-9 h-9 flex items-center justify-center rounded-md transition-colors",
+      "page_active": "bg-primary-600 text-white",
+      "page_inactive": "hover:bg-surface-alt"
+    },
+    "Breadcrumbs": {
+      "file": "src/components/ui/breadcrumb.tsx OR src/components/Breadcrumbs.tsx (wrapper)",
+      "container": "flex items-center gap-2 text-caption text-text-muted",
+      "item_current": "text-text-primary",
+      "item_link": "hover:text-text-secondary cursor-pointer",
+      "separator_icon_size_px": 12
+    },
+    "Divider": {
+      "file": "src/components/ui/separator.tsx",
+      "classes": "h-px bg-border-subtle"
+    },
+    "EmptyState": {
+      "file": "src/components/EmptyState.tsx",
+      "container": "flex flex-col items-center justify-center py-12 max-w-[420px] mx-auto text-center",
+      "icon": "text-icon-default mb-4",
+      "title": "text-h3 text-text-primary mb-2",
+      "description": "text-body text-text-secondary mb-6"
+    },
+    "ChartArea": {
+      "file": "src/components/ChartArea.tsx",
+      "container": "h-[280px] bg-surface border border-border-subtle rounded-lg p-4",
+      "header": {
+        "wrap": "flex items-center justify-between mb-4",
+        "title": "text-h3 text-text-primary",
+        "controls": "flex items-center gap-2"
+      },
+      "granularity_select": "h-8 px-3 pr-8 bg-surface border border-border-subtle rounded-md text-caption appearance-none cursor-pointer",
+      "kebab_button": "w-8 h-8 flex items-center justify-center rounded-md hover:bg-surface-alt",
+      "viz": {
+        "gridline_hex": "#E9EDF5",
+        "area_fill_rgba": "rgba(59,130,246,0.18)",
+        "line_hex": "#3B82F6"
+      }
+    },
+    "ProgressIndicator": {
+      "file": "src/components/ProgressIndicator.tsx",
+      "spinner": {
+        "svg_class": "animate-spin",
+        "track_opacity_class": "opacity-25",
+        "accent_color_hex": "#2563EB"
+      }
+    }
+  },
+  "ai_rules": {
+    "always": [
+      "Use the existing Tailwind color tokens (bg-canvas, bg-surface, border-border-subtle, text-text-primary, etc.) rather than inventing new hex values.",
+      "Use existing typography scale classes (text-h1/h2/h3/body/label/caption).",
+      "Match control sizes used in components (Button md is h-9 == 48px; Input md is h-9 == 48px; Select is h-8 == 40px).",
+      "Use subtle borders and minimal shadows; prefer border-border-subtle + shadow-sm for cards.",
+      "Use focus rings exactly as implemented: ring-2 ring-primary-border with offset where used.",
+      "In Next.js + shadcn/ui, prefer composing and extending shadcn components (Radix) rather than re-inventing primitives; keep styling aligned to these tokens.",
+      "Use the shared Tailwind class merger helper (cn) from src/lib/utils.ts for all className composition.",
+      "When importing new shadcn/ui components, normalize them to this system immediately (replace bg-background/text-foreground/etc with explicit project tokens per foundations.shadcn_theme_mapping.compatibility_layer)."
+    ],
+    "never": [
+      "Do not use Tailwind default grays (e.g. text-gray-500) in new UI; use the project’s semantic tokens instead (text-text-secondary, border-border-subtle, etc.).",
+      "Do not introduce arbitrary pixel values for spacing when a token exists (use the spacing override scale 0–10).",
+      "Do not change the meaning of existing tokens (e.g. don’t repurpose bg-canvas).",
+      "Avoid heavy gradients, thick borders, or large radii that break the enterprise look.",
+      "Do not accept shadcn/ui defaults blindly if they conflict with this spec (e.g. overly rounded radii or different control heights). Override to match this system.",
+      "Do not let shadcn’s semantic tokens (bg-background, text-foreground, border-input, ring-ring, etc.) proliferate in the codebase; they must be replaced with explicit project tokens."
+    ],
+    "consistency_checklist": [
+      "Are all controls in a row the same height? (Typically h-8 or h-9)",
+      "Are borders using border-border-subtle and 1px weight?",
+      "Is the primary action using bg-primary-600 + hover:bg-primary-700 + text-white?",
+      "Is typography using the defined scale (no random text-[13px] etc.)?",
+      "Are icons from lucide-react and sized 16/20 consistently with text?"
+    ]
+  }
+}
+
