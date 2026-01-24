@@ -1,7 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import { AuthHeader } from "@/components/features/auth-header";
-import { SidePanel } from "@/components/features/side-panel";
+import { AppSidebar } from "@/components/features/app-sidebar";
 
 export default async function AuthLayout({
   children,
@@ -17,9 +16,8 @@ export default async function AuthLayout({
 
   return (
     <div className="min-h-screen bg-canvas">
-      <AuthHeader user={user} />
-      <SidePanel />
-      <main className="pt-[56px] pl-[220px]">
+      <AppSidebar user={user} />
+      <main className="pl-[60px]">
         {children}
       </main>
     </div>
