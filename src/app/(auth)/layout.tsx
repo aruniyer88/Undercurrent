@@ -1,5 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
-import { redirect } from "next/navigation";
+import { getCurrentUser } from "@/lib/supabase/server";
 import { AppSidebar } from "@/components/features/app-sidebar";
 
 export default async function AuthLayout({
@@ -7,11 +6,14 @@ export default async function AuthLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  // Middleware already validates authentication and redirects unauthenticated users
+  // Use memoized getCurrentUser() to avoid duplicate auth checks within the same request
+  const user = await getCurrentUser();
 
+  // User will always exist here due to middleware protection, but check for TypeScript
   if (!user) {
-    redirect("/login");
+    // This should never happen due to middleware, but TypeScript needs the check
+    return null;
   }
 
   return (

@@ -134,7 +134,7 @@ export function BriefChat() {
 
   const handleContinue = () => {
     if (state.studyId) {
-      router.push(`/studies/${state.studyId}/setup`);
+      router.push(`/studies/${state.studyId}/flow`);
     }
   };
 

@@ -30,14 +30,16 @@ export default function LoginPage() {
 
       if (error) {
         setError(error.message);
+        setIsLoading(false);
         return;
       }
 
+      // Keep loading indicator visible during navigation
       router.push("/dashboard");
       router.refresh();
+      // Don't set loading to false - let the page navigation handle the state
     } catch {
       setError("An unexpected error occurred. Please try again.");
-    } finally {
       setIsLoading(false);
     }
   };

@@ -14,8 +14,10 @@ export const config = {
      * - favicon.ico (favicon file)
      * - public folder
      * - interview (public participant routes)
+     * - / (root landing page)
+     * - /login (login page)
      */
-    '/((?!_next/static|_next/image|favicon.ico|interview|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|interview|login|design-system|$)(?!.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 }
 

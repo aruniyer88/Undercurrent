@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,6 +10,14 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Plus,
   Clock,
@@ -21,10 +29,12 @@ import {
   Trash2,
   FolderOpen,
   Sparkles,
+  Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Study, StudyStatus } from "@/lib/types/database";
 
-// Type for project status
+// Type for project status (display)
 type ProjectStatus = "draft" | "ready" | "live" | "closed";
 
 interface Project {
@@ -37,14 +47,32 @@ interface Project {
   completeCount: number;
 }
 
-// Mock data for demonstration - replace with real data fetching
-const mockProjects: Project[] = [];
+interface DashboardContentProps {
+  studies: Study[];
+}
+
+// Map StudyStatus to ProjectStatus for display
+function mapStudyStatus(status: StudyStatus): ProjectStatus {
+  switch (status) {
+    case "draft":
+      return "draft";
+    case "ready_for_test":
+    case "tested":
+      return "ready";
+    case "live":
+      return "live";
+    case "closed":
+      return "closed";
+    default:
+      return "draft";
+  }
+}
 
 // Helper function to format relative time
 function formatRelativeTime(date: Date): string {
   const now = new Date();
   const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-  
+
   if (diffInSeconds < 60) return "just now";
   if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
   if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
@@ -77,13 +105,24 @@ function StatusBadge({ status }: { status: ProjectStatus }) {
 }
 
 // Project row component
-function ProjectRow({ project }: { project: Project }) {
+interface ProjectRowProps {
+  project: Project;
+  onEdit: (id: string) => void;
+  onDuplicate: (id: string) => void;
+  onDelete: (project: Project) => void;
+  isLoading?: boolean;
+}
+
+function ProjectRow({ project, onEdit, onDuplicate, onDelete, isLoading }: ProjectRowProps) {
   const router = useRouter();
 
   return (
     <div
       onClick={() => router.push(`/studies/${project.id}`)}
-      className="group flex items-center gap-6 px-4 py-4 border-b border-border-subtle hover:bg-table-hover cursor-pointer transition-colors"
+      className={cn(
+        "group flex items-center gap-6 px-4 py-4 border-b border-border-subtle hover:bg-table-hover cursor-pointer transition-colors",
+        isLoading && "opacity-50 pointer-events-none"
+      )}
     >
       {/* Project Title */}
       <div className="flex-1 min-w-0">
@@ -129,17 +168,30 @@ function ProjectRow({ project }: { project: Project }) {
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-48">
-            <DropdownMenuItem onClick={(e) => e.stopPropagation()}>
+            <DropdownMenuItem
+              onClick={(e) => {
+                e.stopPropagation();
+                onEdit(project.id);
+              }}
+            >
               <Pencil className="mr-2 h-4 w-4" />
               Edit project
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={(e) => e.stopPropagation()}>
+            <DropdownMenuItem
+              onClick={(e) => {
+                e.stopPropagation();
+                onDuplicate(project.id);
+              }}
+            >
               <Copy className="mr-2 h-4 w-4" />
               Duplicate
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
-              onClick={(e) => e.stopPropagation()}
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete(project);
+              }}
               className="text-danger-600 focus:text-danger-600 focus:bg-danger-50"
             >
               <Trash2 className="mr-2 h-4 w-4" />
@@ -179,9 +231,125 @@ function EmptyState() {
   );
 }
 
-export function DashboardContent() {
+// Delete confirmation dialog
+interface DeleteDialogProps {
+  project: Project | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onConfirm: () => void;
+  isDeleting: boolean;
+}
+
+function DeleteConfirmDialog({ project, open, onOpenChange, onConfirm, isDeleting }: DeleteDialogProps) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="w-[480px]">
+        <DialogHeader>
+          <DialogTitle>Delete project</DialogTitle>
+          <DialogDescription className="pt-2">
+            Are you sure you want to delete <span className="font-medium text-text-primary">&quot;{project?.title}&quot;</span>?
+            This action cannot be undone and all associated data will be permanently removed.
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter className="gap-3 pt-4">
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            disabled={isDeleting}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="destructive"
+            onClick={onConfirm}
+            disabled={isDeleting}
+            className="gap-2"
+          >
+            {isDeleting && <Loader2 className="w-4 h-4 animate-spin" />}
+            {isDeleting ? "Deleting..." : "Delete project"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+export function DashboardContent({ studies }: DashboardContentProps) {
   const router = useRouter();
-  const [projects] = useState<Project[]>(mockProjects);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isDuplicating, setIsDuplicating] = useState<string | null>(null);
+
+  // Map studies to projects for display
+  const projects = useMemo<Project[]>(() => {
+    return studies.map((study) => ({
+      id: study.id,
+      title: study.title || "Untitled Project",
+      status: mapStudyStatus(study.status),
+      createdAt: new Date(study.created_at),
+      questionCount: 0, // TODO: Count from flow items when available
+      responseCount: 0, // TODO: Count from interviews when available
+      completeCount: 0, // TODO: Count from completed interviews when available
+    }));
+  }, [studies]);
+
+  const handleEdit = (id: string) => {
+    router.push(`/studies/${id}/flow`);
+  };
+
+  const handleDuplicate = async (id: string) => {
+    setIsDuplicating(id);
+    try {
+      const response = await fetch(`/api/studies/${id}/duplicate`, {
+        method: "POST",
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to duplicate project");
+      }
+
+      // Refresh the page to show the new project
+      router.refresh();
+    } catch (error) {
+      console.error("Error duplicating project:", error);
+      alert("Failed to duplicate project. Please try again.");
+    } finally {
+      setIsDuplicating(null);
+    }
+  };
+
+  const handleDeleteClick = (project: Project) => {
+    setProjectToDelete(project);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!projectToDelete) return;
+
+    setIsDeleting(true);
+    try {
+      const response = await fetch(`/api/studies/${projectToDelete.id}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to delete project");
+      }
+
+      setDeleteDialogOpen(false);
+      setProjectToDelete(null);
+      // Refresh the page to reflect the deletion
+      router.refresh();
+    } catch (error) {
+      console.error("Error deleting project:", error);
+      alert("Failed to delete project. Please try again.");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-canvas">
@@ -217,11 +385,27 @@ export function DashboardContent() {
 
             {/* Project Rows */}
             {projects.map((project) => (
-              <ProjectRow key={project.id} project={project} />
+              <ProjectRow
+                key={project.id}
+                project={project}
+                onEdit={handleEdit}
+                onDuplicate={handleDuplicate}
+                onDelete={handleDeleteClick}
+                isLoading={isDuplicating === project.id}
+              />
             ))}
           </div>
         )}
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <DeleteConfirmDialog
+        project={projectToDelete}
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        onConfirm={handleDeleteConfirm}
+        isDeleting={isDeleting}
+      />
     </div>
   );
 }

@@ -148,12 +148,12 @@ export function BriefChatCompact() {
       // #endregion
 
       if (!error && study) {
-        console.log('[DEBUG] Before router.push', { studyId: study.id, path: `/studies/${study.id}/setup` });
+        console.log('[DEBUG] Before router.push', { studyId: study.id, path: `/studies/${study.id}/flow` });
         // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/a4513daa-fb0a-4846-8a91-6329ec3b738e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'brief-chat-compact.tsx:115',message:'Before router.push',data:{studyId:study.id,path:`/studies/${study.id}/setup`},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+        fetch('http://127.0.0.1:7242/ingest/a4513daa-fb0a-4846-8a91-6329ec3b738e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'brief-chat-compact.tsx:115',message:'Before router.push',data:{studyId:study.id,path:`/studies/${study.id}/flow`},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
         // #endregion
-        // Navigate to study setup
-        router.push(`/studies/${study.id}/setup`);
+        // Navigate to study flow builder
+        router.push(`/studies/${study.id}/flow`);
         console.log('[DEBUG] After router.push', { studyId: study.id });
         // #region agent log
         fetch('http://127.0.0.1:7242/ingest/a4513daa-fb0a-4846-8a91-6329ec3b738e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'brief-chat-compact.tsx:116',message:'After router.push',data:{studyId:study.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});

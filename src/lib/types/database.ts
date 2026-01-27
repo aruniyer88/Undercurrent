@@ -59,6 +59,9 @@ export interface Study {
   intro_text: string | null;
   brief_messages: BriefMessage[];
   voice_profile_id: string | null;
+  // Step 1 Project Basics fields
+  about_interviewer: string | null;
+  language: string | null;
   created_at: string;
   updated_at: string;
   published_at: string | null;
@@ -140,6 +143,127 @@ export interface Job {
 }
 
 // ============================================
+// STUDY FLOW TABLES (Step 2)
+// ============================================
+
+export type FlowItemType =
+  | 'open_ended'
+  | 'single_select'
+  | 'multi_select'
+  | 'rating_scale'
+  | 'ranking'
+  | 'instruction'
+  | 'ai_conversation';
+
+export interface StudyFlow {
+  id: string;
+  study_id: string;
+  welcome_title: string;
+  welcome_message: string;
+  welcome_logo_url: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface FlowSection {
+  id: string;
+  study_flow_id: string;
+  title: string;
+  intro: string | null;
+  display_order: number;
+  stimulus_type: 'image' | 'website' | 'youtube' | null;
+  stimulus_config: StimulusConfig | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface StimulusConfig {
+  url?: string;
+  caption?: string;
+  instructions?: string;
+}
+
+export interface FlowItem {
+  id: string;
+  section_id: string;
+  item_type: FlowItemType;
+  display_order: number;
+  question_text: string | null;
+  response_mode: 'voice' | 'text' | 'screen' | null;
+  item_config: FlowItemConfig;
+  created_at: string;
+  updated_at: string;
+}
+
+// Type-specific configurations
+export interface OpenEndedConfig {
+  probing_mode: 'disabled' | 'auto' | 'custom';
+  custom_probes?: string[];
+}
+
+export interface SelectConfig {
+  options: string[];
+}
+
+export interface RatingScaleConfig {
+  scale_size: number; // 5-10
+  low_label?: string;
+  high_label?: string;
+}
+
+export interface RankingConfig {
+  items: string[];
+}
+
+export interface InstructionConfig {
+  content: string;
+}
+
+export interface AIConversationConfig {
+  duration_seconds: number; // 30-300
+  basis: 'prior_answers' | 'custom';
+  custom_instructions?: string;
+}
+
+export type FlowItemConfig =
+  | OpenEndedConfig
+  | SelectConfig
+  | RatingScaleConfig
+  | RankingConfig
+  | InstructionConfig
+  | AIConversationConfig
+  | Record<string, unknown>;
+
+export interface FlowResponse {
+  id: string;
+  study_id: string;
+  participant_id: string;
+  flow_item_id: string;
+  text_response: string | null;
+  selected_options: string[] | null;
+  rating_value: number | null;
+  ranked_items: string[] | null;
+  conversation_transcript: ConversationMessage[] | null;
+  conversation_duration_seconds: number | null;
+  response_metadata: ResponseMetadata | null;
+  audio_url: string | null;
+  created_at: string;
+}
+
+export interface ConversationMessage {
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: string;
+}
+
+export interface ResponseMetadata {
+  sentiment?: string;
+  themes?: string[];
+  keywords?: string[];
+  [key: string]: unknown;
+}
+
+// ============================================
 // NESTED/JSONB TYPES
 // ============================================
 
@@ -210,6 +334,19 @@ export type ReportUpdate = Partial<Omit<Report, 'id' | 'share_token' | 'created_
 export type JobInsert = Omit<Job, 'id' | 'created_at' | 'updated_at'>;
 export type JobUpdate = Partial<Omit<Job, 'id' | 'created_at' | 'updated_at'>>;
 
+// Study Flow types
+export type StudyFlowInsert = Omit<StudyFlow, 'id' | 'created_at' | 'updated_at'>;
+export type StudyFlowUpdate = Partial<Omit<StudyFlow, 'id' | 'created_at' | 'updated_at'>>;
+
+export type FlowSectionInsert = Omit<FlowSection, 'id' | 'created_at' | 'updated_at'>;
+export type FlowSectionUpdate = Partial<Omit<FlowSection, 'id' | 'created_at' | 'updated_at'>>;
+
+export type FlowItemInsert = Omit<FlowItem, 'id' | 'created_at' | 'updated_at'>;
+export type FlowItemUpdate = Partial<Omit<FlowItem, 'id' | 'created_at' | 'updated_at'>>;
+
+export type FlowResponseInsert = Omit<FlowResponse, 'id' | 'created_at'>;
+export type FlowResponseUpdate = Partial<Omit<FlowResponse, 'id' | 'created_at'>>;
+
 // ============================================
 // QUERY RESULT TYPES (with relations)
 // ============================================
@@ -217,8 +354,18 @@ export type JobUpdate = Partial<Omit<Job, 'id' | 'created_at' | 'updated_at'>>;
 export interface StudyWithRelations extends Study {
   voice_profile?: VoiceProfile | null;
   interview_guide?: InterviewGuide | null;
+  study_flow?: StudyFlow | null;
   interviews?: Interview[];
   report?: Report | null;
+}
+
+// Study flow with nested sections and items
+export interface StudyFlowWithSections extends StudyFlow {
+  sections?: FlowSectionWithItems[];
+}
+
+export interface FlowSectionWithItems extends FlowSection {
+  items?: FlowItem[];
 }
 
 export interface InterviewWithStudy extends Interview {

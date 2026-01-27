@@ -37,7 +37,7 @@ export function StudyCard({ study, statusConfig }: StudyCardProps) {
   const getStudyLink = () => {
     switch (study.status) {
       case "draft":
-        return `/studies/${study.id}/setup`;
+        return `/studies/${study.id}/flow`;
       case "ready_for_test":
         return `/studies/${study.id}/test`;
       case "tested":
@@ -46,7 +46,7 @@ export function StudyCard({ study, statusConfig }: StudyCardProps) {
       case "closed":
         return `/studies/${study.id}/report`;
       default:
-        return `/studies/${study.id}/setup`;
+        return `/studies/${study.id}/flow`;
     }
   };
 
