@@ -53,14 +53,15 @@ function transformDBToUIState(
   sections: (DBFlowSection & { items: DBFlowItem[] })[]
 ): StudyFlowFormData {
   if (!flow) {
-    // Return default state with one empty section
+    // Return default state with one section containing a default open-ended question
+    const defaultSection = createSection(0);
+    defaultSection.items = [createItem("open_ended", 0)];
     return {
       studyId,
       welcomeScreen: {
-        title: "",
         message: "",
       },
-      sections: [createSection(0)],
+      sections: [defaultSection],
     };
   }
 
@@ -68,14 +69,12 @@ function transformDBToUIState(
     id: flow.id,
     studyId,
     welcomeScreen: {
-      title: flow.welcome_title,
       message: flow.welcome_message,
       logoUrl: flow.welcome_logo_url || undefined,
     },
     sections: sections.map((s, idx) => ({
       id: s.id,
       title: s.title,
-      intro: s.intro || undefined,
       stimulus: transformDBStimulusToUI(s.stimulus_type, s.stimulus_config),
       order: idx,
       items: (s.items || [])
@@ -129,8 +128,7 @@ function transformDBItemToUI(item: DBFlowItem, order: number): FlowItem {
         ...base,
         type: "open_ended",
         questionText: item.question_text || "",
-        probingMode: (config.probing_mode as "disabled" | "auto" | "custom") || "auto",
-        customProbes: (config.custom_probes as string[]) || [],
+        probingMode: (config.probing_mode as "disabled" | "auto") || "auto",
         responseMode: (item.response_mode as "voice" | "text") || "voice",
       };
     case "single_select":
@@ -237,12 +235,7 @@ export function StudyFlowBuilder({
       // Clear errors for this field
       if (errors.welcomeScreen) {
         const fieldStr = field as string;
-        if (fieldStr === "title" && errors.welcomeScreen.title) {
-          setErrors((prev) => ({
-            ...prev,
-            welcomeScreen: { ...prev.welcomeScreen, title: undefined },
-          }));
-        } else if (fieldStr === "message" && errors.welcomeScreen.message) {
+        if (fieldStr === "message" && errors.welcomeScreen.message) {
           setErrors((prev) => ({
             ...prev,
             welcomeScreen: { ...prev.welcomeScreen, message: undefined },
@@ -421,13 +414,6 @@ export function StudyFlowBuilder({
     const newErrors: StudyFlowValidationErrors = {};
 
     // Welcome screen validation
-    if (!formData.welcomeScreen.title || formData.welcomeScreen.title.length < 5) {
-      newErrors.welcomeScreen = {
-        ...newErrors.welcomeScreen,
-        title: "Please enter a welcome title (at least 5 characters)",
-      };
-    }
-
     if (!formData.welcomeScreen.message || formData.welcomeScreen.message.length < 20) {
       newErrors.welcomeScreen = {
         ...newErrors.welcomeScreen,
@@ -501,7 +487,6 @@ export function StudyFlowBuilder({
     setErrors(newErrors);
 
     const hasErrors =
-      newErrors.welcomeScreen?.title ||
       newErrors.welcomeScreen?.message ||
       newErrors.general ||
       Object.keys(newErrors.sections || {}).length > 0;
@@ -511,12 +496,11 @@ export function StudyFlowBuilder({
 
   // Check if form is valid for enabling Next button
   const isFormValid = useMemo(() => {
-    const hasWelcomeTitle = formData.welcomeScreen.title.length >= 5;
     const hasWelcomeMessage = formData.welcomeScreen.message.length >= 20;
     const hasQuestions = formData.sections.some((s) =>
       s.items.some((i) => i.type !== "instruction")
     );
-    return hasWelcomeTitle && hasWelcomeMessage && hasQuestions;
+    return hasWelcomeMessage && hasQuestions;
   }, [formData]);
 
   // ============================================
@@ -536,7 +520,6 @@ export function StudyFlowBuilder({
           .from("study_flows")
           .insert({
             study_id: study.id,
-            welcome_title: formData.welcomeScreen.title,
             welcome_message: formData.welcomeScreen.message,
             welcome_logo_url: formData.welcomeScreen.logoUrl || null,
           })
@@ -551,7 +534,6 @@ export function StudyFlowBuilder({
         const { error: flowError } = await supabase
           .from("study_flows")
           .update({
-            welcome_title: formData.welcomeScreen.title,
             welcome_message: formData.welcomeScreen.message,
             welcome_logo_url: formData.welcomeScreen.logoUrl || null,
           })
@@ -570,7 +552,6 @@ export function StudyFlowBuilder({
           .insert({
             study_flow_id: flowId,
             title: section.title,
-            intro: section.intro || null,
             display_order: section.order,
             stimulus_type: section.stimulus?.type || null,
             stimulus_config: section.stimulus
@@ -622,7 +603,6 @@ export function StudyFlowBuilder({
       case "open_ended":
         return {
           probing_mode: item.probingMode,
-          custom_probes: item.customProbes,
         };
       case "single_select":
       case "multi_select":
@@ -721,49 +701,26 @@ export function StudyFlowBuilder({
 
   return (
     <div className="min-h-screen bg-canvas">
-      {/* Header */}
-      <div className="sticky top-0 z-10 bg-surface border-b border-border-subtle">
-        <div className="max-w-4xl mx-auto px-6 py-4">
-          {/* Breadcrumb */}
-          <div className="flex items-center gap-2 text-caption text-text-muted mb-3">
-            <button
-              onClick={() => window.location.href = "/dashboard"}
-              className="hover:text-text-primary transition-colors"
-            >
-              Dashboard
-            </button>
-            <span>/</span>
-            <button
-              onClick={handleBack}
-              className="hover:text-text-primary transition-colors"
-            >
-              Project Basics
-            </button>
-            <span>/</span>
-            <span className="text-text-primary">Study Flow</span>
-          </div>
-
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-h2 text-text-primary">Study Flow</h1>
-              <p className="text-body text-text-muted">
-                Design the interview experience for your participants
-              </p>
-            </div>
-            <Button
-              variant="outline"
-              onClick={() => setAIModalOpen(true)}
-              className="gap-2"
-            >
-              <Sparkles className="w-4 h-4" />
-              Generate with AI
-            </Button>
-          </div>
-        </div>
-      </div>
-
       {/* Content */}
       <div className="max-w-4xl mx-auto px-6 py-8 space-y-8">
+        {/* Page Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-h2 text-text-primary">Study Flow</h1>
+            <p className="text-body text-text-muted">
+              Design the interview experience for your participants
+            </p>
+          </div>
+          <Button
+            variant="outline"
+            onClick={() => setAIModalOpen(true)}
+            className="gap-2 border-purple-200 text-purple-700 hover:bg-purple-50 hover:border-purple-300"
+          >
+            <Sparkles className="w-4 h-4" />
+            Generate with AI
+          </Button>
+        </div>
+
         {/* Welcome Screen */}
         <WelcomeScreenEditor
           data={formData.welcomeScreen}
@@ -816,10 +773,13 @@ export function StudyFlowBuilder({
 
         {/* Add Section Button */}
         <div className="flex justify-center">
-          <Button variant="outline" onClick={addSection} className="gap-2">
+          <button
+            onClick={addSection}
+            className="flex items-center justify-center gap-2 py-2.5 px-6 rounded-lg border-2 border-dashed border-border-subtle bg-transparent hover:border-primary-400 hover:bg-primary-50/50 transition-all group text-text-muted hover:text-primary-600"
+          >
             <Plus className="w-4 h-4" />
-            Add Section
-          </Button>
+            <span className="text-sm font-medium">Add Section</span>
+          </button>
         </div>
 
         {/* General Error */}

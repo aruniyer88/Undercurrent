@@ -1,6 +1,5 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -48,10 +47,10 @@ export function AddItemMenu({ onSelect }: AddItemMenuProps) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" className="w-full gap-2 border-dashed">
+        <button className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg border-2 border-dashed border-border-subtle bg-transparent hover:border-primary-400 hover:bg-primary-50/50 transition-all group text-text-muted hover:text-primary-600">
           <Plus className="w-4 h-4" />
-          Add Step
-        </Button>
+          <span className="text-sm font-medium">Add Question</span>
+        </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="center" className="w-72">
         <div className="px-2 py-1.5 text-xs font-medium text-text-muted">

@@ -8,8 +8,6 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
@@ -28,7 +26,7 @@ import {
   Trash2,
   ChevronDown,
   ChevronRight,
-  Plus,
+  Images,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -67,7 +65,6 @@ export function SectionCard({
 }: SectionCardProps) {
   const [isOpen, setIsOpen] = useState(true);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [showIntro, setShowIntro] = useState(!!section.intro);
   const [showStimulus, setShowStimulus] = useState(!!section.stimulus);
 
   const {
@@ -90,13 +87,6 @@ export function SectionCard({
   const handleDeleteConfirm = () => {
     setShowDeleteDialog(false);
     onDelete();
-  };
-
-  const handleToggleIntro = () => {
-    if (showIntro) {
-      onUpdate({ intro: undefined });
-    }
-    setShowIntro(!showIntro);
   };
 
   const handleToggleStimulus = () => {
@@ -144,13 +134,26 @@ export function SectionCard({
             </CollapsibleTrigger>
 
             {/* Section Title */}
-            <div className="flex-1">
-              <h3 className="text-body-strong text-text-primary">
-                {section.title}
-              </h3>
-              <p className="text-caption text-text-muted">
-                {section.items.length} item{section.items.length !== 1 && "s"}
-              </p>
+            <div className="flex-1 flex items-center gap-2">
+              <div>
+                <h3 className="text-body-strong text-text-primary">
+                  {section.title}
+                </h3>
+                <p className="text-caption text-text-muted">
+                  {section.items.length} item{section.items.length !== 1 && "s"}
+                </p>
+              </div>
+              {/* Add Media Icon */}
+              {!showStimulus && (
+                <button
+                  type="button"
+                  onClick={handleToggleStimulus}
+                  className="text-text-muted hover:text-primary-600 transition-colors"
+                  title="Add media"
+                >
+                  <Images className="w-5 h-5" />
+                </button>
+              )}
             </div>
 
             {/* Delete Button */}
@@ -167,54 +170,8 @@ export function SectionCard({
 
           <CollapsibleContent>
             <div className="p-4 space-y-4">
-              {/* Optional Section Intro */}
-              {!showIntro ? (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleToggleIntro}
-                  className="text-primary-600 hover:text-primary-700"
-                >
-                  <Plus className="w-4 h-4 mr-1" />
-                  Add Section Intro
-                </Button>
-              ) : (
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label className="text-sm font-medium">
-                      Section Introduction
-                    </Label>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleToggleIntro}
-                      className="text-text-muted hover:text-danger-600 h-auto p-1"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                  <Textarea
-                    value={section.intro || ""}
-                    onChange={(e) => onUpdate({ intro: e.target.value })}
-                    placeholder="Introduce this section to participants..."
-                    rows={2}
-                    className="resize-none"
-                  />
-                </div>
-              )}
-
-              {/* Optional Stimulus */}
-              {!showStimulus ? (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleToggleStimulus}
-                  className="text-primary-600 hover:text-primary-700"
-                >
-                  <Plus className="w-4 h-4 mr-1" />
-                  Add Stimulus
-                </Button>
-              ) : (
+              {/* Optional Media */}
+              {showStimulus && (
                 <StimulusEditor
                   stimulus={section.stimulus}
                   onChange={(stimulus) => onUpdate({ stimulus })}
@@ -241,7 +198,7 @@ export function SectionCard({
                   ))}
                 </SortableContext>
 
-                {/* Add Item Button */}
+                {/* Add Question Button */}
                 <AddItemMenu onSelect={onAddItem} />
               </div>
             </div>

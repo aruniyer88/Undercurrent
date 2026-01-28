@@ -20,7 +20,7 @@ export const ITEM_TYPES = [
 
 export type ItemType = (typeof ITEM_TYPES)[number];
 
-export const PROBING_MODES = ['disabled', 'auto', 'custom'] as const;
+export const PROBING_MODES = ['disabled', 'auto'] as const;
 export type ProbingMode = (typeof PROBING_MODES)[number];
 
 export const RESPONSE_MODES = ['voice', 'text', 'screen'] as const;
@@ -50,7 +50,6 @@ export interface OpenEndedItem extends BaseItem {
   type: 'open_ended';
   questionText: string;
   probingMode: ProbingMode;
-  customProbes: string[];
   responseMode: 'voice' | 'text';
 }
 
@@ -142,7 +141,6 @@ export type Stimulus = ImageStimulus | WebsiteStimulus | YouTubeStimulus;
 export interface Section {
   id: string;
   title: string; // Auto-generated: "Section 1", "Section 2", etc.
-  intro?: string;
   stimulus?: Stimulus;
   items: FlowItem[];
   order: number;
@@ -153,7 +151,6 @@ export interface Section {
 // ============================================
 
 export interface WelcomeScreen {
-  title: string;
   message: string;
   logoUrl?: string;
 }
@@ -185,14 +182,12 @@ export interface ItemValidationErrors {
 
 export interface SectionValidationErrors {
   title?: string;
-  intro?: string;
   stimulus?: string;
   items?: Record<string, ItemValidationErrors>;
 }
 
 export interface StudyFlowValidationErrors {
   welcomeScreen?: {
-    title?: string;
     message?: string;
   };
   sections?: Record<string, SectionValidationErrors>;
@@ -238,7 +233,6 @@ export function createOpenEndedItem(order: number): OpenEndedItem {
     type: 'open_ended',
     questionText: '',
     probingMode: 'auto',
-    customProbes: [],
     responseMode: 'voice',
     order,
   };

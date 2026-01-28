@@ -108,7 +108,7 @@ export function StimulusEditor({
   return (
     <div className="space-y-3 p-4 bg-surface-alt rounded-lg border border-border-subtle">
       <div className="flex items-center justify-between">
-        <Label className="text-sm font-medium">Section Stimulus</Label>
+        <Label className="text-sm font-medium">Section Media</Label>
         <Button
           variant="ghost"
           size="sm"
@@ -143,7 +143,7 @@ export function StimulusEditor({
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={imagePreview}
-                  alt="Stimulus preview"
+                  alt="Media preview"
                   className="w-full h-full object-contain"
                 />
               </div>

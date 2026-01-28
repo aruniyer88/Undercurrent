@@ -24,8 +24,7 @@ YOUR TASK:
 Design a complete interview flow that will achieve the research objective. Output a structured interview including:
 
 1. WELCOME SCREEN
-   - A warm, appropriate welcome title
-   - A welcome message that sets expectations (2-4 sentences)
+   - A welcome message that sets expectations and establishes a warm tone (2-4 sentences)
 
 2. SECTIONS (typically 2-4 sections)
    For each section, provide items within the section (3-6 items per section)
@@ -52,7 +51,6 @@ OUTPUT FORMAT:
 Return valid JSON matching this exact schema:
 {
   "welcomeScreen": {
-    "title": "string",
     "message": "string"
   },
   "sections": [
@@ -63,7 +61,6 @@ Return valid JSON matching this exact schema:
           "type": "open_ended",
           "questionText": "string",
           "probingMode": "auto",
-          "customProbes": [],
           "responseMode": "voice"
         },
         {
