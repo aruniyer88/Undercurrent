@@ -48,7 +48,6 @@ export function RankingEditor({
       <div className="space-y-4">
         {/* Question Text */}
         <div className="space-y-2">
-          <Label htmlFor={`question-${item.id}`}>Question</Label>
           <Textarea
             id={`question-${item.id}`}
             value={item.questionText}
@@ -108,17 +107,15 @@ export function RankingEditor({
             </div>
           ))}
           <div className="flex items-center justify-between">
-            <Button
+            <button
               type="button"
-              variant="outline"
-              size="sm"
               onClick={handleAddItem}
               disabled={item.items.length >= 7}
-              className="gap-1"
+              className="inline-flex items-center gap-1 text-sm text-text-muted hover:text-text-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Plus className="w-4 h-4" />
               Add Item
-            </Button>
+            </button>
             <span className="text-caption text-text-muted">
               {item.items.length}/7 items
             </span>

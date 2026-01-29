@@ -62,11 +62,11 @@ const config: Config = {
 
         // === BRAND ===
         "primary": {
-          50: "#EFF6FF",
-          600: "#2563EB",
-          700: "#1D4ED8",
-          border: "#93C5FD",
-          DEFAULT: "#2563EB",
+          50: "#E6F0FF",
+          600: "#0061FF",
+          700: "#0050D6",
+          border: "#80B0FF",
+          DEFAULT: "#0061FF",
         },
 
         // === SEMANTIC ===
@@ -90,7 +90,7 @@ const config: Config = {
 
         // === DATA VIZ ===
         "viz": {
-          blue: "#3B82F6",
+          blue: "#0061FF",
           green: "#10B981",
           teal: "#14B8A6",
           indigo: "#6366F1",
@@ -140,7 +140,7 @@ const config: Config = {
         },
         border: "#E6EAF2",
         input: "#E6EAF2",
-        ring: "#93C5FD",
+        ring: "#80B0FF",
       },
       borderRadius: {
         xs: "4px",

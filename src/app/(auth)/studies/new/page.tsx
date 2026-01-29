@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowRight, Sparkles, Wrench, X, Paperclip, ArrowLeft } from "lucide-react";
+import { ArrowRight, Sparkles, Wrench, X, Paperclip } from "lucide-react";
 import { ProjectBasicsStep, ProjectBasicsFormData } from "@/components/features/project-basics-step";
 import { useToast } from "@/hooks/use-toast";
 import { createClient } from "@/lib/supabase/client";
@@ -68,6 +68,7 @@ export default function NewProjectPage() {
 
       // Navigate to the study flow builder page
       router.push(`/studies/${study.id}/flow`);
+      router.refresh();
     } catch (error) {
       console.error("Error creating study:", error);
       toast({
@@ -311,15 +312,7 @@ export default function NewProjectPage() {
 
         {step === "manual" && (
           <div className="max-w-2xl mx-auto w-full">
-            <div className="space-y-2 mb-8">
-              <button
-                type="button"
-                onClick={() => setStep("choice")}
-                className="flex items-center gap-2 text-text-muted hover:text-text-primary transition-colors mb-4"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                <span className="text-body">Back</span>
-              </button>
+            <div className="space-y-2 mb-6">
               <h1 className="text-h1 text-text-primary">Project Basics</h1>
               <p className="text-body text-text-muted">
                 Tell us about your research project. This information helps the AI interviewer understand the context and conduct better interviews.

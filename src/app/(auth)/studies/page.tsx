@@ -2,6 +2,9 @@ import { createClient } from "@/lib/supabase/server";
 import { StudiesContent } from "@/components/features/studies-content";
 import { Study } from "@/lib/types/database";
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export default async function StudiesPage() {
   const supabase = await createClient();
   

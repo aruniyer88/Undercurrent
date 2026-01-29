@@ -158,7 +158,6 @@ export type FlowItemType =
 export interface StudyFlow {
   id: string;
   study_id: string;
-  welcome_title: string;
   welcome_message: string;
   welcome_logo_url: string | null;
   created_at: string;
@@ -169,7 +168,6 @@ export interface FlowSection {
   id: string;
   study_flow_id: string;
   title: string;
-  intro: string | null;
   display_order: number;
   stimulus_type: 'image' | 'website' | 'youtube' | null;
   stimulus_config: StimulusConfig | null;

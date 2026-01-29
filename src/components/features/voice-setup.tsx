@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { Study, VoiceProfile, VoiceStyleConfig } from "@/lib/types/database";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -122,6 +121,12 @@ export function VoiceSetup({ study, presetVoices, customVoices }: VoiceSetupProp
   const handleContinue = async () => {
     await handleSave();
     router.push(`/studies/${study.id}/test`);
+    router.refresh();
+  };
+
+  const handleBack = () => {
+    router.push(`/studies/${study.id}/flow`);
+    router.refresh();
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -166,12 +171,14 @@ export function VoiceSetup({ study, presetVoices, customVoices }: VoiceSetupProp
         <div className="max-w-5xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <Link href={`/studies/${study.id}/guide`}>
-                <Button variant="ghost" size="sm">
-                  <ArrowLeft className="w-4 h-4 mr-2" />
-                  Back
-                </Button>
-              </Link>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleBack}
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back
+              </Button>
               <div>
                 <h1 className="text-lg font-semibold text-neutral-900">
                   Voice Setup

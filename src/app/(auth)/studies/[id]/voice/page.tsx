@@ -3,6 +3,9 @@ import { notFound } from "next/navigation";
 import { VoiceSetup } from "@/components/features/voice-setup";
 import { Study, VoiceProfile } from "@/lib/types/database";
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 interface VoiceSetupPageProps {
   params: Promise<{ id: string }>;
 }

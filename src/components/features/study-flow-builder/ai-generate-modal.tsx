@@ -48,6 +48,13 @@ export function AIGenerateModal({
   const [error, setError] = useState<string | null>(null);
 
   const handleClose = () => {
+    // Don't reset generatedResult - preserve it for reopening
+    setError(null);
+    onClose();
+  };
+
+  const handleCancel = () => {
+    // Only reset everything when explicitly canceling
     setModalState("input");
     setGeneratedResult(null);
     setError(null);
@@ -57,6 +64,7 @@ export function AIGenerateModal({
   const handleGenerate = async () => {
     setModalState("loading");
     setError(null);
+    setGeneratedResult(null); // Clear previous result when generating new one
 
     try {
       const response = await fetch("/api/ai/generate-study-flow", {
@@ -100,7 +108,11 @@ export function AIGenerateModal({
   const handleApply = () => {
     if (generatedResult) {
       onApply(generatedResult);
-      handleClose();
+      // Reset everything after applying
+      setModalState("input");
+      setGeneratedResult(null);
+      setError(null);
+      onClose();
     }
   };
 
@@ -126,10 +138,13 @@ export function AIGenerateModal({
     }
   };
 
+  // If there's a generated result, show preview; otherwise show input
+  const currentState = generatedResult && modalState !== "loading" ? "preview" : modalState;
+
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="max-w-2xl">
-        {modalState === "input" && (
+        {currentState === "input" && (
           <>
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
@@ -191,7 +206,7 @@ export function AIGenerateModal({
             </div>
 
             <DialogFooter>
-              <Button variant="outline" onClick={handleClose}>
+              <Button variant="outline" onClick={handleCancel}>
                 Cancel
               </Button>
               <Button onClick={handleGenerate} className="gap-2">
@@ -202,7 +217,7 @@ export function AIGenerateModal({
           </>
         )}
 
-        {modalState === "loading" && (
+        {currentState === "loading" && (
           <div className="py-12 flex flex-col items-center justify-center">
             <Loader2 className="w-8 h-8 animate-spin text-primary-600 mb-4" />
             <p className="text-body text-text-muted">Creating your interview flow...</p>
@@ -210,7 +225,7 @@ export function AIGenerateModal({
           </div>
         )}
 
-        {modalState === "preview" && generatedResult && (
+        {currentState === "preview" && generatedResult && (
           <>
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
@@ -223,18 +238,14 @@ export function AIGenerateModal({
               </DialogDescription>
             </DialogHeader>
 
-            <ScrollArea className="max-h-[400px] pr-4">
-              <div className="space-y-4 py-4">
+            <ScrollArea className="max-h-[500px] pr-4">
+              <div className="space-y-6 py-4">
                 {/* Welcome Screen Preview */}
-                <div className="p-3 bg-surface-alt rounded-lg border border-border-subtle">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Check className="w-4 h-4 text-success-600" />
-                    <span className="text-body-strong">Welcome Screen</span>
+                <div className="p-4 bg-white rounded-lg border border-neutral-200">
+                  <div className="mb-3">
+                    <span className="font-semibold text-neutral-900">Welcome Screen</span>
                   </div>
-                  <p className="text-sm font-medium text-text-primary">
-                    {generatedResult.welcomeScreen.title}
-                  </p>
-                  <p className="text-sm text-text-muted mt-1 line-clamp-2">
+                  <p className="text-sm text-neutral-700 leading-relaxed">
                     {generatedResult.welcomeScreen.message}
                   </p>
                 </div>
@@ -243,35 +254,39 @@ export function AIGenerateModal({
                 {generatedResult.sections.map((section, sectionIndex) => (
                   <div
                     key={sectionIndex}
-                    className="p-3 bg-surface-alt rounded-lg border border-border-subtle"
+                    className="p-4 bg-white rounded-lg border border-neutral-200"
                   >
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="text-body-strong">Section {sectionIndex + 1}</span>
-                      <span className="text-caption text-text-muted">
-                        ({section.items.length} items)
+                    <div className="flex items-center gap-2 mb-4 pb-2 border-b border-neutral-100">
+                      <span className="font-semibold text-neutral-900">Section {sectionIndex + 1}</span>
+                      <span className="text-xs text-neutral-500 bg-neutral-100 px-2 py-0.5 rounded-full">
+                        {section.items.length} {section.items.length === 1 ? 'item' : 'items'}
                       </span>
                     </div>
-                    <div className="space-y-2">
+                    <div className="space-y-4">
                       {section.items.map((item, itemIndex) => (
                         <div
                           key={itemIndex}
-                          className="flex items-start gap-2 text-sm pl-4"
+                          className="flex gap-3"
                         >
-                          <span className="text-text-muted mt-0.5">
-                            {getItemIcon(item.type)}
-                          </span>
-                          <span className="text-text-muted">
-                            {ITEM_TYPE_LABELS[item.type]}:
-                          </span>
-                          <span className="text-text-primary line-clamp-1 flex-1">
-                            {"questionText" in item
-                              ? item.questionText
-                              : "content" in item
-                              ? item.content
-                              : item.type === "ai_conversation"
-                              ? `${item.durationSeconds / 60} min conversation`
-                              : ""}
-                          </span>
+                          <div className="flex items-start gap-2 w-40 flex-shrink-0 pt-0.5">
+                            <span className="text-neutral-400 flex-shrink-0">
+                              {getItemIcon(item.type)}
+                            </span>
+                            <span className="text-xs font-medium text-neutral-500 uppercase tracking-wide">
+                              {ITEM_TYPE_LABELS[item.type]}
+                            </span>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm text-neutral-900 leading-relaxed">
+                              {"questionText" in item
+                                ? item.questionText
+                                : "content" in item
+                                ? item.content
+                                : item.type === "ai_conversation"
+                                ? `${item.durationSeconds / 60} minute conversation`
+                                : ""}
+                            </p>
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -281,8 +296,8 @@ export function AIGenerateModal({
             </ScrollArea>
 
             <DialogFooter>
-              <Button variant="outline" onClick={handleClose}>
-                Cancel
+              <Button variant="outline" onClick={() => { setModalState("input"); setGeneratedResult(null); }}>
+                Regenerate
               </Button>
               <Button onClick={handleApply} className="gap-2">
                 <Check className="w-4 h-4" />

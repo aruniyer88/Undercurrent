@@ -243,7 +243,7 @@ export function BriefChatCompact() {
               <button
                 type="submit"
                 disabled={!input.trim() || isLoading}
-                className="p-2 rounded-md transition-all duration-200 disabled:bg-surface-alt disabled:cursor-not-allowed [&:not(:disabled)]:bg-[#2563EB] [&:not(:disabled)]:hover:bg-[#1D4ED8] [&:not(:disabled)]:shadow-sm"
+                className="p-2 rounded-md transition-all duration-200 disabled:bg-surface-alt disabled:cursor-not-allowed [&:not(:disabled)]:bg-[#0061FF] [&:not(:disabled)]:hover:bg-[#0050D6] [&:not(:disabled)]:shadow-sm"
                 aria-label="Submit"
               >
                 {isLoading ? (

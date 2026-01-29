@@ -46,20 +46,9 @@ export function AIConversationEditor({
   touched,
   onUpdate,
 }: AIConversationEditorProps) {
-  const durationLabel =
-    DURATION_OPTIONS.find((d) => d.value === item.durationSeconds)?.label ||
-    "2 minutes";
-
   return (
     <TooltipProvider>
       <div className="space-y-4">
-        {/* Summary Display */}
-        <div className="p-3 bg-primary-50 rounded-md border border-primary-100">
-          <p className="text-body text-primary-700">
-            AI will converse for <span className="font-medium">{durationLabel}</span>
-          </p>
-        </div>
-
         {/* Conversation Duration */}
         <div className="space-y-2">
           <Label>Conversation Duration</Label>
@@ -149,15 +138,6 @@ export function AIConversationEditor({
             )}
           </div>
         )}
-
-        {/* Behavior Note */}
-        <div className="p-3 bg-surface-alt rounded-md">
-          <p className="text-caption text-text-muted">
-            {item.basis === "prior_answers"
-              ? "The AI will synthesize themes from earlier responses and probe deeper into topics the participant has mentioned."
-              : "The AI will use your custom instructions alongside the project objective to guide the conversation naturally."}
-          </p>
-        </div>
       </div>
     </TooltipProvider>
   );

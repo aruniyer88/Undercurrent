@@ -74,7 +74,6 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         .from("study_flows")
         .insert({
           study_id: newStudy.id,
-          welcome_title: originalFlow.welcome_title,
           welcome_message: originalFlow.welcome_message,
           welcome_logo_url: originalFlow.welcome_logo_url,
         })
@@ -96,7 +95,6 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
               .insert({
                 study_flow_id: newFlow.id,
                 title: section.title,
-                intro: section.intro,
                 display_order: section.display_order,
                 stimulus_type: section.stimulus_type,
                 stimulus_config: section.stimulus_config,

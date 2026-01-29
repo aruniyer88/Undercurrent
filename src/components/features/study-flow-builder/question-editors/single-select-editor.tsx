@@ -4,13 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Plus, X, GripVertical } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SingleSelectItem, ItemValidationErrors } from "@/lib/types/study-flow";
@@ -47,7 +40,6 @@ export function SingleSelectEditor({
     <div className="space-y-4">
       {/* Question Text */}
       <div className="space-y-2">
-        <Label htmlFor={`question-${item.id}`}>Question</Label>
         <Textarea
           id={`question-${item.id}`}
           value={item.questionText}
@@ -88,38 +80,17 @@ export function SingleSelectEditor({
             </Button>
           </div>
         ))}
-        <Button
+        <button
           type="button"
-          variant="outline"
-          size="sm"
           onClick={handleAddOption}
-          className="gap-1"
+          className="inline-flex items-center gap-1 text-sm text-text-muted hover:text-text-primary transition-colors"
         >
           <Plus className="w-4 h-4" />
           Add Option
-        </Button>
+        </button>
         {touched && errors?.options && (
           <p className="text-caption text-danger-600">{errors.options}</p>
         )}
-      </div>
-
-      {/* Response Mode */}
-      <div className="space-y-2">
-        <Label>Response Mode</Label>
-        <Select
-          value={item.responseMode}
-          onValueChange={(value) =>
-            onUpdate({ responseMode: value as "screen" | "voice" })
-          }
-        >
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="screen">On-screen Select</SelectItem>
-            <SelectItem value="voice">Voice Response</SelectItem>
-          </SelectContent>
-        </Select>
       </div>
     </div>
   );

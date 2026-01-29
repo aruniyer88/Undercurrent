@@ -3,6 +3,9 @@ import { notFound } from "next/navigation";
 import { StudyFlowBuilder } from "@/components/features/study-flow-builder";
 import { Study, StudyFlow, FlowSection, FlowItem } from "@/lib/types/database";
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 interface StudyFlowPageProps {
   params: Promise<{ id: string }>;
 }

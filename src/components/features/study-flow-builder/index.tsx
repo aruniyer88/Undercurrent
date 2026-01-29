@@ -635,8 +635,9 @@ export function StudyFlowBuilder({
         title: "Draft saved",
         description: "Your study flow has been saved.",
       });
+      router.refresh();
     }
-  }, [saveToDatabase, toast]);
+  }, [saveToDatabase, toast, router]);
 
   const handleNext = useCallback(async () => {
     // Mark all fields as touched
@@ -658,11 +659,13 @@ export function StudyFlowBuilder({
         description: "Continuing to voice configuration...",
       });
       router.push(`/studies/${study.id}/voice`);
+      router.refresh();
     }
   }, [validate, saveToDatabase, study.id, router, toast]);
 
   const handleBack = useCallback(() => {
     router.push(`/studies/${study.id}/basics`);
+    router.refresh();
   }, [router, study.id]);
 
   // ============================================
@@ -714,7 +717,7 @@ export function StudyFlowBuilder({
           <Button
             variant="outline"
             onClick={() => setAIModalOpen(true)}
-            className="gap-2 border-purple-200 text-purple-700 hover:bg-purple-50 hover:border-purple-300"
+            className="gap-2"
           >
             <Sparkles className="w-4 h-4" />
             Generate with AI
