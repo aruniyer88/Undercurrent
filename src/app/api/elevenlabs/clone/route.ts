@@ -26,7 +26,6 @@ export async function POST(request: NextRequest) {
     // Parse form data
     const formData = await request.formData();
     const name = formData.get("name") as string;
-    const ownerName = formData.get("ownerName") as string;
     const description = formData.get("description") as string | null;
     const files = formData.getAll("files") as File[];
 
@@ -34,13 +33,6 @@ export async function POST(request: NextRequest) {
     if (!name || name.trim().length === 0) {
       return NextResponse.json(
         { error: "Voice name is required" },
-        { status: 400 }
-      );
-    }
-
-    if (!ownerName || ownerName.trim().length === 0) {
-      return NextResponse.json(
-        { error: "Voice owner name is required" },
         { status: 400 }
       );
     }
@@ -113,10 +105,10 @@ export async function POST(request: NextRequest) {
         user_id: user.id,
         name: name.trim(),
         type: "cloned",
-        description: description?.trim() || `${ownerName}'s cloned voice`,
+        description: description?.trim() || "Cloned voice",
         provider_voice_id: cloneResult.voice_id,
         consent_confirmed: true,
-        consent_owner_name: ownerName.trim(),
+        consent_owner_name: null,
       })
       .select()
       .single();

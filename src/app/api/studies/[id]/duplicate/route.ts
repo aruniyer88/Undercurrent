@@ -67,7 +67,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       .from("study_flows")
       .select("*")
       .eq("study_id", id)
-      .single();
+      .maybeSingle();
 
     if (originalFlow) {
       const { data: newFlow, error: flowError } = await supabase

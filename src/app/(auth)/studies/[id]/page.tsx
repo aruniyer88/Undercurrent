@@ -23,8 +23,8 @@ export default async function StudyPage({ params }: StudyPageProps) {
   // Redirect based on study status
   switch (study.status) {
     case "draft":
-      // Draft studies go to the flow builder (edit mode)
-      redirect(`/studies/${id}/flow`);
+      // Draft studies go to the wizard for editing
+      redirect(`/studies/wizard?studyId=${id}`);
     case "ready_for_test":
     case "tested":
       // Ready/tested studies go to the test page
@@ -36,7 +36,7 @@ export default async function StudyPage({ params }: StudyPageProps) {
       // Closed studies go to the report page
       redirect(`/studies/${id}/report`);
     default:
-      // Default to flow builder
-      redirect(`/studies/${id}/flow`);
+      // Default to wizard
+      redirect(`/studies/wizard?studyId=${id}`);
   }
 }

@@ -5,11 +5,8 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ArrowRight, Sparkles, Wrench, X, Paperclip } from "lucide-react";
-import { ProjectBasicsStep, ProjectBasicsFormData } from "@/components/features/project-basics-step";
-import { useToast } from "@/hooks/use-toast";
-import { createClient } from "@/lib/supabase/client";
 
-type CreationStep = "choice" | "ai" | "manual";
+type CreationStep = "choice" | "ai";
 
 const placeholderExamples = [
   "Test a new campaign idea and ask for honest reactions from your audience.",
@@ -20,7 +17,6 @@ const placeholderExamples = [
 
 export default function NewProjectPage() {
   const router = useRouter();
-  const { toast } = useToast();
   const [step, setStep] = useState<CreationStep>("choice");
   const [aiPrompt, setAiPrompt] = useState("");
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
@@ -29,103 +25,10 @@ export default function NewProjectPage() {
   const [isTyping, setIsTyping] = useState(true);
   const [showCursor, setShowCursor] = useState(true);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
-  const [isSaving, setIsSaving] = useState(false);
 
-  // Handle Next from Project Basics step
-  const handleProjectBasicsNext = async (data: ProjectBasicsFormData) => {
-    setIsSaving(true);
-    try {
-      const supabase = createClient();
-
-      // Get current user
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-      if (userError || !user) {
-        throw new Error("You must be logged in to create a study");
-      }
-
-      // Create the study record
-      const { data: study, error: createError } = await supabase
-        .from("studies")
-        .insert({
-          user_id: user.id,
-          title: data.projectName,
-          status: "draft",
-          objective: data.objectiveContext,
-          audience: data.aboutAudience,
-          about_interviewer: data.aboutInterviewer,
-          language: data.language,
-          brief_messages: [],
-        })
-        .select()
-        .single();
-
-      if (createError) throw createError;
-
-      toast({
-        title: "Project created",
-        description: "Your study has been created. Continuing to flow builder...",
-      });
-
-      // Navigate to the study flow builder page
-      router.push(`/studies/${study.id}/flow`);
-      router.refresh();
-    } catch (error) {
-      console.error("Error creating study:", error);
-      toast({
-        title: "Error creating study",
-        description: error instanceof Error ? error.message : "Failed to create study. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  // Handle Save Draft from Project Basics step
-  const handleProjectBasicsSaveDraft = async (data: ProjectBasicsFormData) => {
-    setIsSaving(true);
-    try {
-      const supabase = createClient();
-
-      // Get current user
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-      if (userError || !user) {
-        throw new Error("You must be logged in to save a draft");
-      }
-
-      // Create the study record as draft
-      const { error: createError } = await supabase
-        .from("studies")
-        .insert({
-          user_id: user.id,
-          title: data.projectName || "Untitled Study",
-          status: "draft",
-          objective: data.objectiveContext || null,
-          audience: data.aboutAudience || null,
-          about_interviewer: data.aboutInterviewer || null,
-          language: data.language || "English",
-          brief_messages: [],
-        });
-
-      if (createError) throw createError;
-
-      toast({
-        title: "Draft saved",
-        description: "Your study has been saved as a draft.",
-      });
-
-      // Navigate to dashboard with full page reload to ensure fresh data
-      window.location.href = "/dashboard";
-    } catch (error) {
-      console.error("Error saving draft:", error);
-      toast({
-        title: "Error saving draft",
-        description: error instanceof Error ? error.message : "Failed to save draft. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSaving(false);
-    }
+  // Handle "Start from scratch" click - navigates to wizard
+  const handleStartManual = () => {
+    router.push("/studies/wizard");
   };
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -199,7 +102,7 @@ export default function NewProjectPage() {
   }, [step, isTyping]);
 
   return (
-    <div className="min-h-screen bg-canvas">
+    <div className="min-h-screen" style={{ backgroundColor: '#fafafa' }}>
       <button
         type="button"
         onClick={() => router.push("/dashboard")}
@@ -236,7 +139,7 @@ export default function NewProjectPage() {
 
               <button
                 type="button"
-                onClick={() => setStep("manual")}
+                onClick={handleStartManual}
                 className="w-full md:w-56 aspect-square p-5 rounded-xl border border-border-subtle bg-surface hover:bg-surface-alt hover:border-border-strong hover:shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-primary-border flex flex-col items-center justify-center text-center"
               >
                 <div className="w-10 h-10 rounded-md bg-surface-alt flex items-center justify-center mb-4">
@@ -310,23 +213,6 @@ export default function NewProjectPage() {
           </div>
         )}
 
-        {step === "manual" && (
-          <div className="max-w-2xl mx-auto w-full">
-            <div className="space-y-2 mb-6">
-              <h1 className="text-h1 text-text-primary">Project Basics</h1>
-              <p className="text-body text-text-muted">
-                Tell us about your research project. This information helps the AI interviewer understand the context and conduct better interviews.
-              </p>
-            </div>
-            <div className="bg-surface rounded-xl border border-border-subtle p-6">
-              <ProjectBasicsStep
-                onNext={handleProjectBasicsNext}
-                onSaveDraft={handleProjectBasicsSaveDraft}
-                isSaving={isSaving}
-              />
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

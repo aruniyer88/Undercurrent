@@ -45,7 +45,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-canvas px-4">
+    <div className="min-h-screen flex flex-col items-center justify-center px-4" style={{ backgroundColor: '#fafafa' }}>
       {/* Background decoration */}
       <div className="absolute inset-0 -z-10 overflow-hidden">
         <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary-50/50 rounded-full blur-3xl" />

@@ -17,7 +17,7 @@ export default async function AuthLayout({
   }
 
   return (
-    <div className="min-h-screen bg-canvas">
+    <div className="min-h-screen" style={{ backgroundColor: '#fafafa' }}>
       <AppSidebar user={user} />
       <main className="pl-[60px]">
         {children}

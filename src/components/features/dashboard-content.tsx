@@ -295,7 +295,7 @@ export function DashboardContent({ studies }: DashboardContentProps) {
   }, [studies]);
 
   const handleEdit = (id: string) => {
-    router.push(`/studies/${id}/flow`);
+    router.push(`/studies/wizard?studyId=${id}`);
   };
 
   const handleDuplicate = async (id: string) => {
@@ -352,9 +352,9 @@ export function DashboardContent({ studies }: DashboardContentProps) {
   };
 
   return (
-    <div className="min-h-screen bg-canvas">
+    <div className="min-h-screen" style={{ backgroundColor: '#fafafa' }}>
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-canvas border-b border-border-subtle">
+      <div className="sticky top-0 z-10 border-b border-border-subtle" style={{ backgroundColor: '#fafafa' }}>
         <div className="max-w-[1400px] mx-auto px-8 py-5 flex items-center justify-between">
           <h1 className="text-h1 text-text-primary">Projects</h1>
           <Button

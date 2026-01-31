@@ -105,7 +105,7 @@ export function ParticipantInterview({ study, guide }: ParticipantInterviewProps
   // Intro Screen
   if (step === "intro") {
     return (
-      <div className="min-h-screen bg-neutral-50 flex items-center justify-center p-6">
+      <div className="min-h-screen flex items-center justify-center p-6" style={{ backgroundColor: '#fafafa' }}>
         <div className="max-w-lg w-full text-center">
           <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center mx-auto mb-6">
             <Waves className="w-8 h-8 text-white" />
@@ -166,7 +166,7 @@ export function ParticipantInterview({ study, guide }: ParticipantInterviewProps
   // Consent Screen
   if (step === "consent") {
     return (
-      <div className="min-h-screen bg-neutral-50 flex items-center justify-center p-6">
+      <div className="min-h-screen flex items-center justify-center p-6" style={{ backgroundColor: '#fafafa' }}>
         <div className="max-w-lg w-full">
           <h1 className="text-2xl font-bold text-neutral-900 mb-6 text-center">
             Before we begin
@@ -222,7 +222,7 @@ export function ParticipantInterview({ study, guide }: ParticipantInterviewProps
   // Device Check Screen
   if (step === "device-check") {
     return (
-      <div className="min-h-screen bg-neutral-50 flex items-center justify-center p-6">
+      <div className="min-h-screen flex items-center justify-center p-6" style={{ backgroundColor: '#fafafa' }}>
         <div className="max-w-lg w-full text-center">
           <div className={cn(
             "w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6",
@@ -278,7 +278,7 @@ export function ParticipantInterview({ study, guide }: ParticipantInterviewProps
   // Complete Screen
   if (step === "complete") {
     return (
-      <div className="min-h-screen bg-neutral-50 flex items-center justify-center p-6">
+      <div className="min-h-screen flex items-center justify-center p-6" style={{ backgroundColor: '#fafafa' }}>
         <div className="max-w-lg w-full text-center">
           <div className="w-20 h-20 rounded-full bg-success-100 flex items-center justify-center mx-auto mb-6">
             <CheckCircle2 className="w-10 h-10 text-success-600" />

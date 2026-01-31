@@ -49,7 +49,7 @@ const config: Config = {
     extend: {
       colors: {
         // === NEUTRALS ===
-        "canvas": "#F5F7FB",
+        "canvas": "#fafafa",
         "surface": "#FFFFFF",
         "surface-alt": "#F9FAFC",
         "border-subtle": "#E6EAF2",
@@ -112,7 +112,7 @@ const config: Config = {
         "selected-row": "#EEF2FF",
 
         // === shadcn/ui compatibility (mapped to project tokens) ===
-        background: "#F5F7FB",
+        background: "#fafafa",
         foreground: "#111827",
         card: {
           DEFAULT: "#FFFFFF",

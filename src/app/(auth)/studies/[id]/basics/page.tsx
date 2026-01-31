@@ -134,7 +134,7 @@ export default function StudyBasicsPage({ params }: StudyBasicsPageProps) {
 
   if (isLoading || !study) {
     return (
-      <div className="min-h-screen bg-canvas flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#fafafa' }}>
         <div className="text-text-muted">Loading...</div>
       </div>
     );
@@ -150,7 +150,7 @@ export default function StudyBasicsPage({ params }: StudyBasicsPageProps) {
   };
 
   return (
-    <div className="min-h-screen bg-canvas">
+    <div className="min-h-screen" style={{ backgroundColor: '#fafafa' }}>
       {/* Close button */}
       <button
         type="button"

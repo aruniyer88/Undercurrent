@@ -34,7 +34,7 @@ export function StudiesContent({ studies }: StudiesContentProps) {
   }, {} as Record<string, number>);
 
   return (
-    <div className="min-h-[calc(100vh-56px)] bg-canvas p-6">
+    <div className="min-h-[calc(100vh-56px)] p-6" style={{ backgroundColor: '#fafafa' }}>
       <div className="max-w-[1400px] mx-auto space-y-6">
         {/* Header */}
         <div>

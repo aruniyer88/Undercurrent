@@ -30,7 +30,7 @@ export default async function StudyFlowPage({ params }: StudyFlowPageProps) {
     .from("study_flows")
     .select("*")
     .eq("study_id", id)
-    .single();
+    .maybeSingle();
 
   // If flow exists, fetch sections with items
   let sections: (FlowSection & { items: FlowItem[] })[] = [];

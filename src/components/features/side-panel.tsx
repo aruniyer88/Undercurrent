@@ -22,7 +22,7 @@ export function SidePanel() {
   const pathname = usePathname();
 
   return (
-    <aside className="fixed top-[56px] left-0 w-[220px] h-[calc(100vh-56px)] bg-canvas border-r border-border-subtle">
+    <aside className="fixed top-[56px] left-0 w-[220px] h-[calc(100vh-56px)] border-r border-border-subtle" style={{ backgroundColor: '#fafafa' }}>
       <nav className="p-3">
         <ul className="space-y-1">
           {navItems.map((item) => {

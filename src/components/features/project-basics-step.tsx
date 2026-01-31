@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, forwardRef, useImperativeHandle, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -60,20 +60,40 @@ interface ValidationErrors {
 // AI enhancement state
 type AIEnhanceState = "idle" | "loading" | "preview";
 
-interface ProjectBasicsStepProps {
-  initialData?: Partial<ProjectBasicsFormData>;
-  onNext: (data: ProjectBasicsFormData) => void;
-  onSaveDraft: (data: ProjectBasicsFormData) => void;
-  isSaving?: boolean;
+// Ref interface for wizard integration
+export interface ProjectBasicsStepRef {
+  validate: () => boolean;
+  getData: () => ProjectBasicsFormData;
+  isDirty: () => boolean;
+  save: () => Promise<boolean>;
 }
 
-export function ProjectBasicsStep({
-  initialData,
-  onNext,
-  onSaveDraft,
-  isSaving = false,
-}: ProjectBasicsStepProps) {
+interface ProjectBasicsStepProps {
+  initialData?: Partial<ProjectBasicsFormData>;
+  onNext?: (data: ProjectBasicsFormData) => void;
+  onSaveDraft?: (data: ProjectBasicsFormData) => void;
+  isSaving?: boolean;
+  // Embedded mode props (for wizard integration)
+  embedded?: boolean;
+  onValidationChange?: (isValid: boolean) => void;
+  onSave?: (data: ProjectBasicsFormData) => Promise<boolean>;
+}
+
+export const ProjectBasicsStep = forwardRef<ProjectBasicsStepRef, ProjectBasicsStepProps>(
+  function ProjectBasicsStep(
+    {
+      initialData,
+      onNext,
+      onSaveDraft,
+      isSaving = false,
+      embedded = false,
+      onValidationChange,
+      onSave,
+    },
+    ref
+  ) {
   const { toast } = useToast();
+  const initialDataRef = useRef(initialData);
 
   // Form state
   const [formData, setFormData] = useState<ProjectBasicsFormData>({
@@ -157,6 +177,47 @@ export function ProjectBasicsStep({
       formData.objectiveContext.length >= 50
     );
   }, [formData]);
+
+  // Check if form has been modified from initial state
+  const isDirty = useCallback(() => {
+    const initial = initialDataRef.current;
+    return (
+      formData.projectName !== (initial?.projectName || "") ||
+      formData.aboutInterviewer !== (initial?.aboutInterviewer || "") ||
+      formData.aboutAudience !== (initial?.aboutAudience || "") ||
+      formData.objectiveContext !== (initial?.objectiveContext || "") ||
+      formData.language !== (initial?.language || "English")
+    );
+  }, [formData]);
+
+  // Report validation changes to parent (for wizard integration)
+  useEffect(() => {
+    if (onValidationChange) {
+      onValidationChange(isFormValid);
+    }
+  }, [isFormValid, onValidationChange]);
+
+  // Expose methods to parent via ref (for wizard integration)
+  useImperativeHandle(ref, () => ({
+    validate: () => {
+      // Mark all fields as touched
+      setTouched({
+        projectName: true,
+        aboutInterviewer: true,
+        aboutAudience: true,
+        objectiveContext: true,
+      });
+      return validate();
+    },
+    getData: () => formData,
+    isDirty,
+    save: async () => {
+      if (onSave) {
+        return onSave(formData);
+      }
+      return true;
+    },
+  }), [formData, validate, isDirty, onSave]);
 
   // Handle AI enhancement
   const handleEnhanceWithAI = useCallback(async () => {
@@ -253,19 +314,21 @@ export function ProjectBasicsStep({
       objectiveContext: true,
     });
 
-    if (validate()) {
+    if (validate() && onNext) {
       onNext(formData);
     }
   }, [formData, validate, onNext]);
 
   // Handle Save Draft
   const handleSaveDraft = useCallback(() => {
-    onSaveDraft(formData);
+    if (onSaveDraft) {
+      onSaveDraft(formData);
+    }
   }, [formData, onSaveDraft]);
 
   return (
     <TooltipProvider>
-      <div className="space-y-6">
+      <div className="space-y-4">
         {/* Project Name */}
         <div className="space-y-2">
           <Label htmlFor="projectName" className="text-base font-medium">
@@ -310,7 +373,7 @@ export function ProjectBasicsStep({
             onChange={(e) => updateField("aboutInterviewer", e.target.value)}
             onBlur={() => handleBlur("aboutInterviewer")}
             placeholder="e.g., I'm the Head of Community at a fintech startup..."
-            rows={3}
+            rows={2}
             className={cn(
               "resize-none",
               touched.aboutInterviewer && errors.aboutInterviewer && "border-danger-600 focus:ring-danger-600"
@@ -344,7 +407,7 @@ export function ProjectBasicsStep({
             onChange={(e) => updateField("aboutAudience", e.target.value)}
             onBlur={() => handleBlur("aboutAudience")}
             placeholder="e.g., Early adopters of our mobile app, mostly 25-40 year olds..."
-            rows={3}
+            rows={2}
             className={cn(
               "resize-none",
               touched.aboutAudience && errors.aboutAudience && "border-danger-600 focus:ring-danger-600"
@@ -414,7 +477,7 @@ export function ProjectBasicsStep({
                   <Textarea
                     value={enhancedObjective}
                     onChange={(e) => setEnhancedObjective(e.target.value)}
-                    rows={6}
+                    rows={5}
                     className="resize-none bg-warning-50 border-warning-200"
                   />
                 </div>
@@ -462,7 +525,7 @@ export function ProjectBasicsStep({
                 onChange={(e) => updateField("objectiveContext", e.target.value)}
                 onBlur={() => handleBlur("objectiveContext")}
                 placeholder="e.g., We recently launched a new onboarding flow and want to understand how users felt about it..."
-                rows={6}
+                rows={5}
                 className={cn(
                   "resize-none",
                   touched.objectiveContext && errors.objectiveContext && "border-danger-600 focus:ring-danger-600"
@@ -496,7 +559,7 @@ export function ProjectBasicsStep({
             value={formData.language}
             onValueChange={(value) => updateField("language", value as Language)}
           >
-            <SelectTrigger className="w-full">
+            <SelectTrigger id="language" className="w-full">
               <SelectValue placeholder="Select a language" />
             </SelectTrigger>
             <SelectContent>
@@ -509,29 +572,31 @@ export function ProjectBasicsStep({
           </Select>
         </div>
 
-        {/* Navigation Buttons */}
-        <div className="flex items-center justify-between pt-6 border-t border-border-subtle">
-          <Button
-            variant="outline"
-            onClick={handleSaveDraft}
-            disabled={isSaving}
-          >
-            {isSaving ? (
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            ) : (
-              <Save className="w-4 h-4 mr-2" />
-            )}
-            Save Draft
-          </Button>
-          <Button
-            onClick={handleNext}
-            disabled={!isFormValid || aiState === "loading"}
-          >
-            Next
-            <ArrowRight className="w-4 h-4 ml-2" />
-          </Button>
-        </div>
+        {/* Navigation Buttons - Hidden in embedded mode */}
+        {!embedded && (
+          <div className="flex items-center justify-between pt-6 border-t border-border-subtle">
+            <Button
+              variant="outline"
+              onClick={handleSaveDraft}
+              disabled={isSaving}
+            >
+              {isSaving ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Save className="w-4 h-4 mr-2" />
+              )}
+              Save Draft
+            </Button>
+            <Button
+              onClick={handleNext}
+              disabled={!isFormValid || aiState === "loading"}
+            >
+              Next
+              <ArrowRight className="w-4 h-4 ml-2" />
+            </Button>
+          </div>
+        )}
       </div>
     </TooltipProvider>
   );
-}
+});

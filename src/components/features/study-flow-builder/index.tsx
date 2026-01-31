@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, forwardRef, useImperativeHandle, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
   DndContext,
@@ -40,10 +40,22 @@ import { WelcomeScreenEditor } from "./welcome-screen-editor";
 import { SectionCard } from "./section-card";
 import { AIGenerateModal } from "./ai-generate-modal";
 
+// Ref interface for wizard integration
+export interface StudyFlowBuilderRef {
+  validate: () => boolean;
+  getData: () => StudyFlowFormData;
+  isDirty: () => boolean;
+  save: () => Promise<boolean>;
+  openAIModal?: () => void;
+}
+
 interface StudyFlowBuilderProps {
   study: Study;
   existingFlow: StudyFlow | null;
   existingSections: (DBFlowSection & { items: DBFlowItem[] })[];
+  // Embedded mode props (for wizard integration)
+  embedded?: boolean;
+  onValidationChange?: (isValid: boolean) => void;
 }
 
 // Transform DB data to UI state
@@ -188,14 +200,21 @@ function transformDBItemToUI(item: DBFlowItem, order: number): FlowItem {
   }
 }
 
-export function StudyFlowBuilder({
-  study,
-  existingFlow,
-  existingSections,
-}: StudyFlowBuilderProps) {
+export const StudyFlowBuilder = forwardRef<StudyFlowBuilderRef, StudyFlowBuilderProps>(
+  function StudyFlowBuilder(
+    {
+      study,
+      existingFlow,
+      existingSections,
+      embedded = false,
+      onValidationChange,
+    },
+    ref
+  ) {
   const router = useRouter();
   const { toast } = useToast();
   const supabase = createClient();
+  const initialFormDataRef = useRef<StudyFlowFormData | null>(null);
 
   // Form state
   const [formData, setFormData] = useState<StudyFlowFormData>(() =>
@@ -503,6 +522,26 @@ export function StudyFlowBuilder({
     return hasWelcomeMessage && hasQuestions;
   }, [formData]);
 
+  // Store initial state for dirty check
+  useEffect(() => {
+    if (!initialFormDataRef.current) {
+      initialFormDataRef.current = formData;
+    }
+  }, []);
+
+  // Check if form has been modified
+  const isDirty = useCallback(() => {
+    if (!initialFormDataRef.current) return false;
+    return JSON.stringify(formData) !== JSON.stringify(initialFormDataRef.current);
+  }, [formData]);
+
+  // Report validation changes to parent (for wizard integration)
+  useEffect(() => {
+    if (onValidationChange) {
+      onValidationChange(isFormValid);
+    }
+  }, [isFormValid, onValidationChange]);
+
   // ============================================
   // SAVE & NAVIGATION
   // ============================================
@@ -596,6 +635,21 @@ export function StudyFlowBuilder({
       setIsSaving(false);
     }
   }, [formData, study.id, supabase, toast]);
+
+  // Expose methods to parent via ref (for wizard integration)
+  useImperativeHandle(ref, () => ({
+    validate: () => {
+      setTouched({ all: true });
+      return validate();
+    },
+    getData: () => formData,
+    isDirty,
+    save: async () => {
+      const success = await saveToDatabase();
+      return success;
+    },
+    openAIModal: () => setAIModalOpen(true),
+  }), [formData, validate, isDirty, saveToDatabase]);
 
   // Build item_config based on item type
   function buildItemConfig(item: FlowItem): Record<string, unknown> {
@@ -703,17 +757,10 @@ export function StudyFlowBuilder({
   // ============================================
 
   return (
-    <div className="min-h-screen bg-canvas">
-      {/* Content */}
-      <div className="max-w-4xl mx-auto px-6 py-8 space-y-8">
-        {/* Page Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-h2 text-text-primary">Study Flow</h1>
-            <p className="text-body text-text-muted">
-              Design the interview experience for your participants
-            </p>
-          </div>
+    <div className="space-y-6">
+      {/* Generate with AI button - moved to header */}
+      {!embedded && (
+        <div className="flex justify-end">
           <Button
             variant="outline"
             onClick={() => setAIModalOpen(true)}
@@ -723,8 +770,9 @@ export function StudyFlowBuilder({
             Generate with AI
           </Button>
         </div>
+      )}
 
-        {/* Welcome Screen */}
+      {/* Welcome Screen */}
         <WelcomeScreenEditor
           data={formData.welcomeScreen}
           errors={errors.welcomeScreen}
@@ -763,7 +811,7 @@ export function StudyFlowBuilder({
             </SortableContext>
           </div>
 
-          <DragOverlay>
+          <DragOverlay style={embedded ? { zIndex: 10000 } : undefined}>
             {activeId && activeType === "section" && (
               <div className="bg-surface border border-primary-border rounded-lg p-4 shadow-lg opacity-80">
                 <span className="text-body-strong">
@@ -792,32 +840,33 @@ export function StudyFlowBuilder({
           </p>
         )}
 
-        {/* Navigation */}
-        <div className="flex items-center justify-between pt-6 border-t border-border-subtle">
-          <Button variant="outline" onClick={handleBack}>
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Project Basics
-          </Button>
-          <div className="flex items-center gap-3">
-            <Button
-              variant="outline"
-              onClick={handleSaveDraft}
-              disabled={isSaving}
-            >
-              {isSaving ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <Save className="w-4 h-4 mr-2" />
-              )}
-              Save Draft
+        {/* Navigation - Hidden in embedded mode */}
+        {!embedded && (
+          <div className="flex items-center justify-between pt-6 border-t border-border-subtle">
+            <Button variant="outline" onClick={handleBack}>
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back to Project Basics
             </Button>
-            <Button onClick={handleNext} disabled={!isFormValid || isSaving}>
-              Next
-              <ArrowRight className="w-4 h-4 ml-2" />
-            </Button>
+            <div className="flex items-center gap-3">
+              <Button
+                variant="outline"
+                onClick={handleSaveDraft}
+                disabled={isSaving}
+              >
+                {isSaving ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Save className="w-4 h-4 mr-2" />
+                )}
+                Save Draft
+              </Button>
+              <Button onClick={handleNext} disabled={!isFormValid || isSaving}>
+                Next
+                <ArrowRight className="w-4 h-4 ml-2" />
+              </Button>
+            </div>
           </div>
-        </div>
-      </div>
+        )}
 
       {/* AI Generate Modal */}
       <AIGenerateModal
@@ -828,4 +877,4 @@ export function StudyFlowBuilder({
       />
     </div>
   );
-}
+});

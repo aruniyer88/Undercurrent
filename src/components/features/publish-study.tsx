@@ -92,7 +92,7 @@ export function PublishStudy({ study, baseUrl }: PublishStudyProps) {
   };
 
   return (
-    <div className="min-h-screen bg-neutral-50">
+    <div className="min-h-screen" style={{ backgroundColor: '#fafafa' }}>
       {/* Header */}
       <div className="sticky top-16 z-40 bg-white border-b border-neutral-200">
         <div className="max-w-4xl mx-auto px-6 py-4">
