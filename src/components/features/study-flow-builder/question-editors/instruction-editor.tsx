@@ -55,9 +55,7 @@ export function InstructionEditor({
             value={item.content}
             onChange={(e) => onUpdate({ content: e.target.value })}
             placeholder="e.g., In the next section, we'll show you a prototype. Please take your time to explore it before answering questions."
-            rows={4}
             className={cn(
-              "resize-none",
               touched && errors?.content && "border-danger-600"
             )}
           />

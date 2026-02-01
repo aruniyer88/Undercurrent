@@ -24,6 +24,7 @@ export function WizardFooter({ onNext, onSaveDraft, onLaunch }: WizardFooterProp
         {!isFirstStep && (
           <Button
             variant="ghost"
+            size="sm"
             onClick={prevStep}
             disabled={isLoading || isSaving}
             className="gap-2"
@@ -39,7 +40,8 @@ export function WizardFooter({ onNext, onSaveDraft, onLaunch }: WizardFooterProp
         {/* Save Draft button (not on last step) */}
         {!isLastStep && (
           <Button
-            variant="outline"
+            variant="ghost"
+            size="sm"
             onClick={onSaveDraft}
             disabled={isLoading || isSaving}
             className="gap-2"
@@ -52,6 +54,7 @@ export function WizardFooter({ onNext, onSaveDraft, onLaunch }: WizardFooterProp
         {/* Next / Launch button */}
         {isLastStep ? (
           <Button
+            size="sm"
             onClick={onLaunch}
             disabled={!canProceed || isLoading || isSaving}
             className="gap-2"
@@ -61,6 +64,7 @@ export function WizardFooter({ onNext, onSaveDraft, onLaunch }: WizardFooterProp
           </Button>
         ) : (
           <Button
+            size="sm"
             onClick={onNext}
             disabled={!canProceed || isLoading || isSaving}
             className="gap-2"

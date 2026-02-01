@@ -1,10 +1,9 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, X, GripVertical, Info } from "lucide-react";
+import { Plus, X, Info } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -53,9 +52,9 @@ export function RankingEditor({
             value={item.questionText}
             onChange={(e) => onUpdate({ questionText: e.target.value })}
             placeholder="e.g., Please rank these features from most to least important"
-            rows={2}
+            rows={1}
             className={cn(
-              "resize-none",
+              "resize-none overflow-hidden",
               touched && errors?.questionText && "border-danger-600"
             )}
           />
@@ -87,23 +86,21 @@ export function RankingEditor({
           </div>
           {item.items.map((rankItem, index) => (
             <div key={index} className="flex items-center gap-2">
-              <GripVertical className="w-4 h-4 text-text-muted cursor-grab" />
               <Input
                 value={rankItem}
                 onChange={(e) => handleUpdateItem(index, e.target.value)}
                 placeholder={`Item ${index + 1}`}
-                className="flex-1"
+                className="flex-1 h-8 px-2 py-1"
               />
-              <Button
+              <button
                 type="button"
-                variant="ghost"
-                size="sm"
                 onClick={() => handleRemoveItem(index)}
                 disabled={item.items.length <= 2}
-                className="text-text-muted hover:text-danger-600 disabled:opacity-50"
+                className="p-1 text-text-muted hover:text-danger-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                aria-label="Remove item"
               >
                 <X className="w-4 h-4" />
-              </Button>
+              </button>
             </div>
           ))}
           <div className="flex items-center justify-between">

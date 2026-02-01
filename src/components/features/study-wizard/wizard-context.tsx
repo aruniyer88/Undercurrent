@@ -13,6 +13,8 @@ import {
   WizardContextValue,
   WizardStep,
   WIZARD_STEPS,
+  NavSection,
+  StudyStatus,
 } from "./wizard-types";
 import { createClient } from "@/lib/supabase/client";
 
@@ -57,6 +59,26 @@ export function WizardProvider({
   const [canProceed, setCanProceed] = useState(false);
   const [hasCheckedCompletion, setHasCheckedCompletion] = useState(false);
 
+  // New state for project name, study status, and navigation
+  const [projectName, setProjectName] = useState<string>("");
+  const [studyStatus, setStudyStatus] = useState<StudyStatus>("draft");
+  const [activeSection, setActiveSection] = useState<NavSection>("setup");
+  const [expandedSections, setExpandedSections] = useState<Set<NavSection>>(
+    () => new Set<NavSection>(["setup"])
+  );
+
+  const toggleSectionExpanded = useCallback((section: NavSection) => {
+    setExpandedSections((prev) => {
+      const next = new Set(prev);
+      if (next.has(section)) {
+        next.delete(section);
+      } else {
+        next.add(section);
+      }
+      return next;
+    });
+  }, []);
+
   const totalSteps = WIZARD_STEPS.length;
 
   // Check which steps are complete based on database data
@@ -80,6 +102,14 @@ export function WizardProvider({
           .single();
 
         if (error) throw error;
+
+        // Store project name and study status
+        if (study.title) {
+          setProjectName(study.title);
+        }
+        if (study.status) {
+          setStudyStatus(study.status as StudyStatus);
+        }
 
         const completed = new Set<number>();
         let firstIncompleteStep = 1;
@@ -248,6 +278,14 @@ export function WizardProvider({
       markStepIncomplete,
       studyId,
       setStudyId,
+      projectName,
+      setProjectName,
+      studyStatus,
+      setStudyStatus,
+      activeSection,
+      setActiveSection,
+      expandedSections,
+      toggleSectionExpanded,
       isLoading,
       setIsLoading,
       isSaving,
@@ -267,6 +305,11 @@ export function WizardProvider({
       markStepComplete,
       markStepIncomplete,
       studyId,
+      projectName,
+      studyStatus,
+      activeSection,
+      expandedSections,
+      toggleSectionExpanded,
       isLoading,
       isSaving,
       closeWizard,

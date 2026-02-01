@@ -1,10 +1,9 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, X, GripVertical } from "lucide-react";
+import { Plus, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SingleSelectItem, ItemValidationErrors } from "@/lib/types/study-flow";
 
@@ -45,9 +44,9 @@ export function SingleSelectEditor({
           value={item.questionText}
           onChange={(e) => onUpdate({ questionText: e.target.value })}
           placeholder="e.g., Which of these best describes your role?"
-          rows={2}
+          rows={1}
           className={cn(
-            "resize-none",
+            "resize-none overflow-hidden",
             touched && errors?.questionText && "border-danger-600"
           )}
         />
@@ -61,23 +60,21 @@ export function SingleSelectEditor({
         <Label>Options</Label>
         {item.options.map((option, index) => (
           <div key={index} className="flex items-center gap-2">
-            <GripVertical className="w-4 h-4 text-text-muted cursor-grab" />
             <Input
               value={option}
               onChange={(e) => handleUpdateOption(index, e.target.value)}
               placeholder={`Option ${index + 1}`}
-              className="flex-1"
+              className="flex-1 h-8 px-2 py-1"
             />
-            <Button
+            <button
               type="button"
-              variant="ghost"
-              size="sm"
               onClick={() => handleRemoveOption(index)}
               disabled={item.options.length <= 2}
-              className="text-text-muted hover:text-danger-600 disabled:opacity-50"
+              className="p-1 text-text-muted hover:text-danger-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              aria-label="Remove option"
             >
               <X className="w-4 h-4" />
-            </Button>
+            </button>
           </div>
         ))}
         <button

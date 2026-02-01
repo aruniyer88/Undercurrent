@@ -36,6 +36,23 @@ export const WIZARD_STEPS: Omit<WizardStep, "isComplete" | "isAccessible">[] = [
   },
 ];
 
+// Navigation sections
+export type NavSection = "setup" | "responses" | "analysis";
+
+export type StudyStatus = "draft" | "live" | "completed" | "paused";
+
+export interface NavSectionConfig {
+  id: NavSection;
+  label: string;
+  icon: string;
+}
+
+export const NAV_SECTIONS: NavSectionConfig[] = [
+  { id: "setup", label: "SETUP", icon: "settings" },
+  { id: "responses", label: "RESPONSES", icon: "chart" },
+  { id: "analysis", label: "ANALYSIS", icon: "analytics" },
+];
+
 export interface WizardContextValue {
   // Step management
   currentStep: number;
@@ -51,6 +68,16 @@ export interface WizardContextValue {
   // Study data
   studyId: string | null;
   setStudyId: (id: string) => void;
+  projectName: string;
+  setProjectName: (name: string) => void;
+  studyStatus: StudyStatus;
+  setStudyStatus: (status: StudyStatus) => void;
+
+  // Navigation sections
+  activeSection: NavSection;
+  setActiveSection: (section: NavSection) => void;
+  expandedSections: Set<NavSection>;
+  toggleSectionExpanded: (section: NavSection) => void;
 
   // UI state
   isLoading: boolean;

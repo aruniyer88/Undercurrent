@@ -125,9 +125,7 @@ export function AIConversationEditor({
               value={item.customInstructions}
               onChange={(e) => onUpdate({ customInstructions: e.target.value })}
               placeholder="e.g., Explore their emotional reaction to the new packaging design. Ask about first impressions, what stands out, and whether it changes their perception of the brand."
-              rows={5}
               className={cn(
-                "resize-none",
                 touched && errors?.customInstructions && "border-danger-600"
               )}
             />

@@ -9,6 +9,7 @@ import {
 import { StepRef, StepContentProps } from "../wizard-types";
 import { createClient } from "@/lib/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useWizard } from "../wizard-context";
 
 interface ProjectBasicsStepContentProps extends StepContentProps {
   onStudyCreated?: (studyId: string) => void;
@@ -22,6 +23,7 @@ export const ProjectBasicsStepContent = forwardRef<
   ref
 ) {
   const { toast } = useToast();
+  const { setProjectName } = useWizard();
   const [initialData, setInitialData] = useState<Partial<ProjectBasicsFormData> | undefined>();
   const [isLoading, setIsLoading] = useState(!!studyId);
   const innerRef = { current: null as ProjectBasicsStepRef | null };
@@ -84,6 +86,9 @@ export const ProjectBasicsStepContent = forwardRef<
 
           if (error) throw error;
 
+          // Update project name in context
+          setProjectName(data.projectName);
+
           toast({
             title: "Study updated",
             description: "Your changes have been saved.",
@@ -117,6 +122,9 @@ export const ProjectBasicsStepContent = forwardRef<
 
           if (error) throw error;
 
+          // Update project name in context
+          setProjectName(data.projectName);
+
           toast({
             title: "Study created",
             description: "Your study has been created.",
@@ -138,7 +146,7 @@ export const ProjectBasicsStepContent = forwardRef<
         return false;
       }
     },
-    [studyId, onStudyCreated, toast]
+    [studyId, onStudyCreated, toast, setProjectName]
   );
 
   // Expose ref methods

@@ -14,6 +14,9 @@ import { VoiceSetupStepContent } from "./steps/voice-setup-step";
 import { TestPreviewStepContent } from "./steps/test-preview-step";
 import { ReviewLaunchStepContent } from "./steps/review-launch-step";
 
+// Section components
+import { ResponsesSection, AnalysisSection } from "./sections";
+
 interface WizardContentProps {
   onUnsavedChanges: (hasChanges: boolean) => void;
 }
@@ -41,6 +44,17 @@ const STEP_TITLES: Record<number, { title: string; description: string }> = {
   },
 };
 
+const SECTION_TITLES: Record<string, { title: string; description: string }> = {
+  responses: {
+    title: "Responses",
+    description: "View and manage interview responses",
+  },
+  analysis: {
+    title: "Analysis",
+    description: "AI-powered insights from your research",
+  },
+};
+
 export function WizardContent({ onUnsavedChanges }: WizardContentProps) {
   const {
     currentStep,
@@ -52,10 +66,15 @@ export function WizardContent({ onUnsavedChanges }: WizardContentProps) {
     setIsSaving,
     setCanProceed,
     closeWizard,
+    activeSection,
   } = useWizard();
 
   const stepRef = useRef<StepRef>(null);
   const stepInfo = STEP_TITLES[currentStep];
+  const sectionInfo = SECTION_TITLES[activeSection];
+
+  // Determine what header to show based on active section
+  const headerInfo = activeSection === "setup" ? stepInfo : sectionInfo;
 
   // Track if step has unsaved changes
   const handleValidationChange = useCallback(
@@ -172,23 +191,38 @@ export function WizardContent({ onUnsavedChanges }: WizardContentProps) {
     );
   }
 
+  // Render section content based on active section
+  const renderSectionContent = () => {
+    switch (activeSection) {
+      case "responses":
+        return <ResponsesSection />;
+      case "analysis":
+        return <AnalysisSection />;
+      case "setup":
+      default:
+        return renderStepContent();
+    }
+  };
+
   return (
     <div className="flex flex-col min-h-screen" style={{ backgroundColor: '#fafafa' }}>
       {/* Header - sticky */}
-      <div className="sticky top-0 z-10 px-8 py-4 border-b border-border-subtle bg-surface">
-        <div className="flex items-start justify-between gap-4">
+      <div className="sticky top-0 z-10 px-8 py-2 border-b border-border-subtle bg-surface">
+        <div className="flex items-center justify-between gap-4">
           <div className="flex-1">
-            <h1 className="text-h2 text-text-primary">{stepInfo.title}</h1>
-            <p className="text-body text-text-muted mt-1">{stepInfo.description}</p>
+            <h2 className="text-h4 text-text-primary">{headerInfo?.title}</h2>
+            <p className="text-sm text-text-muted mt-0.5">{headerInfo?.description}</p>
           </div>
           <div className="flex items-center gap-2">
-            {/* Generate with AI button - only for Study Flow step */}
-            {currentStep === 2 && (
+            {/* Generate with AI button - only for Study Flow step in setup section */}
+            {activeSection === "setup" && currentStep === 2 && (
               <Button
                 variant="outline"
+                size="sm"
                 onClick={() => {
-                  if (stepRef.current && 'openAIModal' in stepRef.current && stepRef.current.openAIModal) {
-                    stepRef.current.openAIModal();
+                  if (stepRef.current && 'openAIModal' in stepRef.current) {
+                    const ref = stepRef.current as StepRef & { openAIModal?: () => void };
+                    ref.openAIModal?.();
                   }
                 }}
                 className="gap-2"
@@ -211,17 +245,19 @@ export function WizardContent({ onUnsavedChanges }: WizardContentProps) {
 
       {/* Content area - grows and scrolls naturally */}
       <div className="flex-1 px-8 py-4">
-        {renderStepContent()}
+        {renderSectionContent()}
       </div>
 
-      {/* Footer - sticky at bottom */}
-      <div className="sticky bottom-0 z-10">
-        <WizardFooter
-          onNext={handleNext}
-          onSaveDraft={handleSaveDraft}
-          onLaunch={handleLaunch}
-        />
-      </div>
+      {/* Footer - sticky at bottom, only show for setup section */}
+      {activeSection === "setup" && (
+        <div className="sticky bottom-0 z-10">
+          <WizardFooter
+            onNext={handleNext}
+            onSaveDraft={handleSaveDraft}
+            onLaunch={handleLaunch}
+          />
+        </div>
+      )}
     </div>
   );
 }

@@ -352,7 +352,7 @@ export type FlowResponseUpdate = Partial<Omit<FlowResponse, 'id' | 'created_at'>
 export interface StudyWithRelations extends Study {
   voice_profile?: VoiceProfile | null;
   interview_guide?: InterviewGuide | null;
-  study_flow?: StudyFlow | null;
+  study_flow?: StudyFlowWithSections | null;
   interviews?: Interview[];
   report?: Report | null;
 }

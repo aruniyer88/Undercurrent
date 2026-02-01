@@ -53,8 +53,8 @@ export function AppSidebar({ user }: AppSidebarProps) {
   return (
     <aside
       className={cn(
-        "fixed top-0 left-0 h-screen bg-topbar-bg flex flex-col transition-all duration-200 ease-out z-50",
-        isExpanded ? "w-[200px]" : "w-[60px]"
+        "fixed top-0 left-0 h-screen bg-topbar-bg flex flex-col transition-all duration-200 ease-out",
+        isExpanded ? "w-[200px] z-[80]" : "w-[60px] z-50"
       )}
       onMouseEnter={() => setIsExpanded(true)}
       onMouseLeave={() => {
@@ -129,7 +129,7 @@ export function AppSidebar({ user }: AppSidebarProps) {
               )}
             >
               <Avatar className="h-8 w-8 flex-shrink-0">
-                <AvatarFallback className="bg-primary-600 text-white text-caption font-semibold">
+                <AvatarFallback className="bg-primary-600 text-caption font-semibold" style={{ color: 'white' }}>
                   {initials}
                 </AvatarFallback>
               </Avatar>

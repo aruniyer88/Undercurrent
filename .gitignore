@@ -38,3 +38,10 @@ next-env.d.ts
 # IDE
 .cursor/
 .mcp.json
+
+# AI assistants
+.agent/
+.agents/
+.claude/
+.codex/
+.gemini/

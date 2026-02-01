@@ -190,8 +190,7 @@ export function AIGenerateModal({
                         value={additionalDetails}
                         onChange={(e) => setAdditionalDetails(e.target.value)}
                         placeholder="Paste your research plan, discussion guide, existing questions, or any additional context..."
-                        rows={6}
-                        className="mt-3 resize-none"
+                        className="mt-3"
                       />
                     )}
                   </div>

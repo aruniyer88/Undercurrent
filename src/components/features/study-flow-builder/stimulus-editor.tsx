@@ -221,14 +221,12 @@ export function StimulusEditor({
             <Textarea
               id="website-instructions"
               placeholder="Tell participants what to look for on this website..."
-              rows={2}
               value={
                 stimulus?.type === "website" ? stimulus.instructions || "" : ""
               }
               onChange={(e) =>
                 handleWebsiteChange("instructions", e.target.value)
               }
-              className="resize-none"
             />
           </div>
         </TabsContent>
@@ -263,14 +261,12 @@ export function StimulusEditor({
             <Textarea
               id="youtube-instructions"
               placeholder="Tell participants what to pay attention to in the video..."
-              rows={2}
               value={
                 stimulus?.type === "youtube" ? stimulus.instructions || "" : ""
               }
               onChange={(e) =>
                 handleYouTubeChange("instructions", e.target.value)
               }
-              className="resize-none"
             />
           </div>
         </TabsContent>

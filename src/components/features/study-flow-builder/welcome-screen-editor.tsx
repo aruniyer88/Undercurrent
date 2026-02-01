@@ -62,9 +62,7 @@ export function WelcomeScreenEditor({
             value={data.message}
             onChange={(e) => onChange("message", e.target.value)}
             placeholder="e.g., Thank you for taking the time to share your thoughts with us. This conversation will take about 10-15 minutes..."
-            rows={1}
             className={cn(
-              "resize-none overflow-hidden",
               touched && errors?.message && "border-danger-600 focus:ring-danger-600"
             )}
           />

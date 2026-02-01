@@ -32,7 +32,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Study, StudyStatus } from "@/lib/types/database";
+import { StudyWithRelations, StudyStatus } from "@/lib/types/database";
 
 // Type for project status (display)
 type ProjectStatus = "draft" | "ready" | "live" | "closed";
@@ -48,7 +48,7 @@ interface Project {
 }
 
 interface DashboardContentProps {
-  studies: Study[];
+  studies: StudyWithRelations[];
 }
 
 // Map StudyStatus to ProjectStatus for display
@@ -81,23 +81,51 @@ function formatRelativeTime(date: Date): string {
   return `${Math.floor(diffInSeconds / 2592000)}mo ago`;
 }
 
-// Status badge component
+// Status badge component with pill-shaped styling
 function StatusBadge({ status }: { status: ProjectStatus }) {
   const statusConfig = {
-    draft: { label: "Draft", className: "badge-draft" },
-    ready: { label: "Ready", className: "badge-ready" },
-    live: { label: "Live", className: "badge-live" },
-    closed: { label: "Closed", className: "badge-closed" },
+    draft: {
+      label: "Draft",
+      style: {
+        backgroundColor: "#F3F4F6",
+        color: "#6B7280"
+      }
+    },
+    ready: {
+      label: "Ready",
+      style: {
+        backgroundColor: "#DCFCE7",
+        color: "#166534"
+      }
+    },
+    live: {
+      label: "Live",
+      style: {
+        backgroundColor: "#DBEAFE",
+        color: "#1E40AF"
+      }
+    },
+    closed: {
+      label: "Closed",
+      style: {
+        backgroundColor: "#FEE2E2",
+        color: "#991B1B"
+      }
+    },
   };
 
   const config = statusConfig[status];
 
   return (
     <span
-      className={cn(
-        "inline-flex items-center px-2.5 py-0.5 rounded-full text-caption font-medium",
-        config.className
-      )}
+      className="inline-flex items-center rounded-full"
+      style={{
+        ...config.style,
+        padding: "4px 12px",
+        fontSize: "12px",
+        fontWeight: 500,
+        borderRadius: "9999px",
+      }}
     >
       {config.label}
     </span>
@@ -120,38 +148,66 @@ function ProjectRow({ project, onEdit, onDuplicate, onDelete, isLoading }: Proje
     <div
       onClick={() => router.push(`/studies/${project.id}`)}
       className={cn(
-        "group flex items-center gap-6 px-4 py-4 border-b border-border-subtle hover:bg-table-hover cursor-pointer transition-colors",
+        "group flex items-center gap-6 cursor-pointer transition-all duration-200",
+        "focus:outline-none focus:ring-2 focus:ring-primary-border focus:ring-offset-2",
         isLoading && "opacity-50 pointer-events-none"
       )}
+      style={{
+        padding: "12px 16px",
+        borderRadius: "8px",
+        border: "1px solid #E5E7EB",
+        backgroundColor: "white",
+        marginBottom: "8px",
+        boxShadow: "none",
+        transition: "all 0.2s ease",
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.backgroundColor = "#F9FAFB";
+        e.currentTarget.style.boxShadow = "0 2px 8px rgba(0,0,0,0.08)";
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.backgroundColor = "white";
+        e.currentTarget.style.boxShadow = "none";
+      }}
+      tabIndex={0}
+      role="button"
+      aria-label={`Open project ${project.title}`}
     >
       {/* Project Title */}
       <div className="flex-1 min-w-0">
-        <h3 className="text-body-strong text-text-primary truncate group-hover:text-primary-600 transition-colors">
+        <h3
+          className="truncate group-hover:text-primary-600 transition-colors"
+          style={{
+            fontWeight: 600,
+            color: "#111827",
+            fontSize: "15px",
+          }}
+        >
           {project.title}
         </h3>
       </div>
 
       {/* Status */}
-      <div className="w-20 flex-shrink-0">
+      <div className="w-24 flex-shrink-0">
         <StatusBadge status={project.status} />
       </div>
 
       {/* Created At */}
-      <div className="w-28 flex-shrink-0 flex items-center gap-1.5 text-text-muted">
+      <div className="w-32 flex-shrink-0 flex items-center gap-1.5" style={{ color: "#6B7280" }}>
         <Clock className="w-4 h-4" />
-        <span className="text-caption">Created {formatRelativeTime(project.createdAt)}</span>
+        <span style={{ fontSize: "13px" }}>{formatRelativeTime(project.createdAt)}</span>
       </div>
 
       {/* Questions */}
-      <div className="w-28 flex-shrink-0 flex items-center gap-1.5 text-text-muted">
+      <div className="w-28 flex-shrink-0 flex items-center gap-1.5" style={{ color: "#6B7280" }}>
         <HelpCircle className="w-4 h-4" />
-        <span className="text-caption">{project.questionCount} questions</span>
+        <span style={{ fontSize: "13px" }}>{project.questionCount} questions</span>
       </div>
 
       {/* Responses */}
-      <div className="w-40 flex-shrink-0 flex items-center gap-1.5 text-text-muted">
+      <div className="w-56 flex-shrink-0 flex items-center gap-1.5" style={{ color: "#6B7280" }}>
         <Users className="w-4 h-4" />
-        <span className="text-caption">
+        <span style={{ fontSize: "13px", whiteSpace: "nowrap" }}>
           {project.responseCount} responses ({project.completeCount} complete)
         </span>
       </div>
@@ -162,7 +218,8 @@ function ProjectRow({ project, onEdit, onDuplicate, onDelete, isLoading }: Proje
           <DropdownMenuTrigger asChild>
             <button
               onClick={(e) => e.stopPropagation()}
-              className="p-1.5 rounded-md text-icon-default opacity-0 group-hover:opacity-100 hover:bg-surface-alt hover:text-icon-strong transition-all focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-primary-border"
+              className="p-1.5 rounded-md text-icon-default opacity-0 group-hover:opacity-100 hover:bg-gray-200 hover:text-icon-strong transition-all focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-primary-border"
+              aria-label={`Actions for ${project.title}`}
             >
               <MoreHorizontal className="w-5 h-5" />
             </button>
@@ -211,7 +268,7 @@ function EmptyState() {
   return (
     <div className="flex flex-col items-center justify-center py-24 px-6">
       <div className="w-16 h-16 rounded-full bg-surface-alt flex items-center justify-center mb-6">
-        <FolderOpen className="w-8 h-8 text-text-muted" />
+        <FolderOpen className="w-8 h-8 text-white" />
       </div>
       <h3 className="text-h2 text-text-primary mb-2">You have no active projects.</h3>
       <p className="text-body text-text-secondary text-center max-w-md mb-1">
@@ -283,15 +340,40 @@ export function DashboardContent({ studies }: DashboardContentProps) {
 
   // Map studies to projects for display
   const projects = useMemo<Project[]>(() => {
-    return studies.map((study) => ({
-      id: study.id,
-      title: study.title || "Untitled Project",
-      status: mapStudyStatus(study.status),
-      createdAt: new Date(study.created_at),
-      questionCount: 0, // TODO: Count from flow items when available
-      responseCount: 0, // TODO: Count from interviews when available
-      completeCount: 0, // TODO: Count from completed interviews when available
-    }));
+    return studies.map((study) => {
+      // Count flow items that are questions (exclude 'instruction' type)
+      let questionCount = 0;
+      const studyFlow = study.study_flow;
+
+      if (studyFlow?.sections) {
+        studyFlow.sections.forEach((section) => {
+          if (section.items) {
+            questionCount += section.items.filter(
+              (item) => item.item_type !== 'instruction'
+            ).length;
+          }
+        });
+      }
+
+      // Count only completed interviews as responses
+      // Responses are only when people fill out the survey and we record their responses
+      const interviews = study.interviews || [];
+      const completedInterviews = interviews.filter(
+        (interview) => interview.status === 'completed'
+      );
+      const responseCount = completedInterviews.length;
+      const completeCount = completedInterviews.length;
+
+      return {
+        id: study.id,
+        title: study.title || "Untitled Project",
+        status: mapStudyStatus(study.status),
+        createdAt: new Date(study.created_at),
+        questionCount,
+        responseCount,
+        completeCount,
+      };
+    });
   }, [studies]);
 
   const handleEdit = (id: string) => {
@@ -355,10 +437,13 @@ export function DashboardContent({ studies }: DashboardContentProps) {
     <div className="min-h-screen" style={{ backgroundColor: '#fafafa' }}>
       {/* Header */}
       <div className="sticky top-0 z-10 border-b border-border-subtle" style={{ backgroundColor: '#fafafa' }}>
-        <div className="max-w-[1400px] mx-auto px-8 py-5 flex items-center justify-between">
-          <h1 className="text-h1 text-text-primary">Projects</h1>
+        <div className="max-w-[1200px] mx-auto px-8 py-5 flex items-center justify-between">
+          <div>
+            <h1 className="text-h1 text-text-primary">Projects</h1>
+          </div>
           <Button
             onClick={() => router.push("/studies/new")}
+            size="sm"
             className="gap-2"
           >
             <Plus className="w-4 h-4" />
@@ -368,32 +453,43 @@ export function DashboardContent({ studies }: DashboardContentProps) {
       </div>
 
       {/* Content */}
-      <div className="max-w-[1400px] mx-auto">
+      <div className="max-w-[1200px] mx-auto px-8 py-6">
         {projects.length === 0 ? (
           <EmptyState />
         ) : (
-          <div className="divide-y divide-border-subtle">
+          <div>
             {/* Column Headers */}
-            <div className="flex items-center gap-6 px-4 py-3 bg-surface-alt text-caption text-text-muted uppercase tracking-wide">
+            <div
+              className="flex items-center gap-6 px-4 py-3 mb-3"
+              style={{
+                fontWeight: 600,
+                color: "#374151",
+                textTransform: "uppercase",
+                fontSize: "11px",
+                letterSpacing: "0.05em",
+              }}
+            >
               <div className="flex-1 min-w-0">Project</div>
-              <div className="w-20 flex-shrink-0">Status</div>
-              <div className="w-28 flex-shrink-0">Created</div>
+              <div className="w-24 flex-shrink-0">Status</div>
+              <div className="w-32 flex-shrink-0">Created</div>
               <div className="w-28 flex-shrink-0">Questions</div>
-              <div className="w-40 flex-shrink-0">Responses</div>
+              <div className="w-56 flex-shrink-0">Responses</div>
               <div className="w-10 flex-shrink-0"></div>
             </div>
 
-            {/* Project Rows */}
-            {projects.map((project) => (
-              <ProjectRow
-                key={project.id}
-                project={project}
-                onEdit={handleEdit}
-                onDuplicate={handleDuplicate}
-                onDelete={handleDeleteClick}
-                isLoading={isDuplicating === project.id}
-              />
-            ))}
+            {/* Project Cards */}
+            <div>
+              {projects.map((project) => (
+                <ProjectRow
+                  key={project.id}
+                  project={project}
+                  onEdit={handleEdit}
+                  onDuplicate={handleDuplicate}
+                  onDelete={handleDeleteClick}
+                  isLoading={isDuplicating === project.id}
+                />
+              ))}
+            </div>
           </div>
         )}
       </div>

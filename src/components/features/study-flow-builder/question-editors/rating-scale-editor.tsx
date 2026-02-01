@@ -35,9 +35,9 @@ export function RatingScaleEditor({
           value={item.questionText}
           onChange={(e) => onUpdate({ questionText: e.target.value })}
           placeholder="e.g., How satisfied are you with our customer support?"
-          rows={2}
+          rows={1}
           className={cn(
-            "resize-none",
+            "resize-none overflow-hidden",
             touched && errors?.questionText && "border-danger-600"
           )}
         />

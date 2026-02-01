@@ -59,7 +59,13 @@ export function WizardPage({
 
   return (
     <>
-      <div className="min-h-screen grid grid-cols-[240px_1fr]" style={{ backgroundColor: '#fafafa' }}>
+      {/* Blocking overlay - prevents AppSidebar hover when over wizard area */}
+      <div
+        className="fixed left-[60px] top-0 right-0 bottom-0 z-[60]"
+        style={{ pointerEvents: 'none' }}
+      />
+
+      <div className="min-h-screen grid grid-cols-[240px_1fr] relative z-[70]" style={{ backgroundColor: '#fafafa' }}>
         <WizardProvider
           initialStudyId={studyId}
           initialStep={initialStep}
