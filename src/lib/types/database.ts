@@ -62,6 +62,9 @@ export interface Study {
   // Step 1 Project Basics fields
   about_interviewer: string | null;
   language: string | null;
+  // Interview mode settings (applies to entire study)
+  interview_mode: 'voice' | 'video';
+  camera_required: boolean; // Only applies when interview_mode='video'
   created_at: string;
   updated_at: string;
   published_at: string | null;
@@ -245,6 +248,16 @@ export interface FlowResponse {
   conversation_duration_seconds: number | null;
   response_metadata: ResponseMetadata | null;
   audio_url: string | null;
+  // Video recording fields
+  video_url: string | null;
+  video_thumbnail_url: string | null;
+  video_duration_seconds: number | null;
+  video_format: string | null;
+  video_resolution: string | null;
+  video_start_timestamp: string | null;
+  video_end_timestamp: string | null;
+  video_start_offset_ms: number | null;
+  video_end_offset_ms: number | null;
   created_at: string;
 }
 
@@ -368,5 +381,31 @@ export interface FlowSectionWithItems extends FlowSection {
 
 export interface InterviewWithStudy extends Interview {
   study?: Study;
+}
+
+// ============================================
+// DISTRIBUTION TABLE
+// ============================================
+
+export interface Distribution {
+  id: string;
+  study_id: string;
+  name: string;
+  shareable_link_id: string;
+  max_responses: number | null;
+  current_responses: number;
+  redirect_completion_url: string | null;
+  redirect_screenout_url: string | null;
+  redirect_quota_full_url: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export type DistributionInsert = Omit<Distribution, 'id' | 'shareable_link_id' | 'current_responses' | 'created_at' | 'updated_at'>;
+export type DistributionUpdate = Partial<Pick<Distribution, 'name' | 'max_responses' | 'redirect_completion_url' | 'redirect_screenout_url' | 'redirect_quota_full_url'>>;
+
+export interface StudyWithDistribution extends Study {
+  distributions?: Distribution[];
 }
 

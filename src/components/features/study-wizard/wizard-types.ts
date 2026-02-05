@@ -31,8 +31,8 @@ export const WIZARD_STEPS: Omit<WizardStep, "isComplete" | "isAccessible">[] = [
   },
   {
     id: 5,
-    title: "Review & Launch",
-    description: "Final review and publish",
+    title: "Distribution",
+    description: "Share your study",
   },
 ];
 

@@ -18,7 +18,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { ArrowRight, Save, Loader2, Sparkles, Check, X, RotateCcw, Pencil } from "lucide-react";
+import { ArrowRight, Save, Loader2, Sparkles, Check, X, RotateCcw, Pencil, Info } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
@@ -501,9 +501,25 @@ export const ProjectBasicsStep = forwardRef<ProjectBasicsStepRef, ProjectBasicsS
 
         {/* Language */}
         <div className="space-y-2">
-          <Label htmlFor="language" className="text-base font-medium">
-            Language <span className="text-danger-600">*</span>
-          </Label>
+          <div className="flex items-center gap-1.5">
+            <Label htmlFor="language" className="text-base font-medium">
+              Interview Language <span className="text-danger-600">*</span>
+            </Label>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  className="inline-flex items-center justify-center w-4 h-4 rounded-full text-text-muted hover:text-text-default transition-colors"
+                  aria-label="Interview language information"
+                >
+                  <Info className="w-4 h-4" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>The AI interviewer will conduct the interview and communicate with participants in this language</p>
+              </TooltipContent>
+            </Tooltip>
+          </div>
           <Select
             value={formData.language}
             onValueChange={(value) => updateField("language", value as Language)}

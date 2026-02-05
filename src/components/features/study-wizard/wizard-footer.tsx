@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronLeft, ChevronRight, Rocket, Save } from "lucide-react";
+import { ChevronLeft, ChevronRight, Link2, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useWizard } from "./wizard-context";
 
@@ -51,7 +51,7 @@ export function WizardFooter({ onNext, onSaveDraft, onLaunch }: WizardFooterProp
           </Button>
         )}
 
-        {/* Next / Launch button */}
+        {/* Next / Generate Link button */}
         {isLastStep ? (
           <Button
             size="sm"
@@ -59,8 +59,8 @@ export function WizardFooter({ onNext, onSaveDraft, onLaunch }: WizardFooterProp
             disabled={!canProceed || isLoading || isSaving}
             className="gap-2"
           >
-            <Rocket className="w-4 h-4" />
-            {isLoading ? "Launching..." : "Launch Study"}
+            <Link2 className="w-4 h-4" />
+            {isLoading ? "Generating..." : "Generate Link"}
           </Button>
         ) : (
           <Button

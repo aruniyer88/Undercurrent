@@ -379,7 +379,7 @@ export const VoiceSetup = forwardRef<VoiceSetupRef, VoiceSetupProps>(
             .eq("user_id", study.user_id)
             .maybeSingle();
           existingProfile = data;
-        } catch (error) {
+        } catch {
           // Ignore RLS/permission errors, just create a new profile
           console.log("Could not check for existing profile, will create new one");
         }
@@ -508,7 +508,7 @@ export const VoiceSetup = forwardRef<VoiceSetupRef, VoiceSetupProps>(
             .eq("user_id", study.user_id)
             .maybeSingle();
           existingProfile = data;
-        } catch (error) {
+        } catch {
           // Ignore RLS/permission errors, just create a new profile
           console.log("Could not check for existing profile, will create new one");
         }

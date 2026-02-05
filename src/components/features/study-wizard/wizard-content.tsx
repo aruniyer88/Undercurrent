@@ -12,7 +12,7 @@ import { ProjectBasicsStepContent } from "./steps/project-basics-step";
 import { StudyFlowStepContent } from "./steps/study-flow-step";
 import { VoiceSetupStepContent } from "./steps/voice-setup-step";
 import { TestPreviewStepContent } from "./steps/test-preview-step";
-import { ReviewLaunchStepContent } from "./steps/review-launch-step";
+import { DistributionStepContent } from "./steps/distribution-step";
 
 // Section components
 import { ResponsesSection, AnalysisSection } from "./sections";
@@ -39,8 +39,8 @@ const STEP_TITLES: Record<number, { title: string; description: string }> = {
     description: "Test your interview before launching",
   },
   5: {
-    title: "Review & Launch",
-    description: "Review your study and publish it",
+    title: "Distribution",
+    description: "Configure and share your study link",
   },
 };
 
@@ -175,7 +175,7 @@ export function WizardContent({ onUnsavedChanges }: WizardContentProps) {
       case 4:
         return <TestPreviewStepContent ref={stepRef} {...props} />;
       case 5:
-        return <ReviewLaunchStepContent ref={stepRef} {...props} />;
+        return <DistributionStepContent ref={stepRef} {...props} />;
       default:
         return null;
     }

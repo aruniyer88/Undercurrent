@@ -37,6 +37,7 @@ import {
 } from "@/lib/types/study-flow";
 
 import { WelcomeScreenEditor } from "./welcome-screen-editor";
+import { InterviewModeSelector } from "./interview-mode-selector";
 import { SectionCard } from "./section-card";
 import { AIGenerateModal } from "./ai-generate-modal";
 
@@ -263,6 +264,68 @@ export const StudyFlowBuilder = forwardRef<StudyFlowBuilderRef, StudyFlowBuilder
       }
     },
     [errors]
+  );
+
+  // ============================================
+  // INTERVIEW MODE HANDLERS
+  // ============================================
+
+  const handleInterviewModeChange = useCallback(
+    async (mode: "voice" | "video") => {
+      try {
+        const { error } = await supabase
+          .from("studies")
+          .update({ interview_mode: mode })
+          .eq("id", study.id);
+
+        if (error) throw error;
+
+        // Update local study object
+        study.interview_mode = mode;
+
+        toast({
+          title: "Interview mode updated",
+          description: `Interview mode set to ${mode}.`,
+        });
+      } catch (error) {
+        console.error("Error updating interview mode:", error);
+        toast({
+          title: "Error",
+          description: "Failed to update interview mode. Please try again.",
+          variant: "destructive",
+        });
+      }
+    },
+    [study, supabase, toast]
+  );
+
+  const handleCameraRequiredChange = useCallback(
+    async (required: boolean) => {
+      try {
+        const { error } = await supabase
+          .from("studies")
+          .update({ camera_required: required })
+          .eq("id", study.id);
+
+        if (error) throw error;
+
+        // Update local study object
+        study.camera_required = required;
+
+        toast({
+          title: "Camera settings updated",
+          description: `Camera is now ${required ? "required" : "optional"}.`,
+        });
+      } catch (error) {
+        console.error("Error updating camera requirement:", error);
+        toast({
+          title: "Error",
+          description: "Failed to update camera settings. Please try again.",
+          variant: "destructive",
+        });
+      }
+    },
+    [study, supabase, toast]
   );
 
   // ============================================
@@ -771,6 +834,14 @@ export const StudyFlowBuilder = forwardRef<StudyFlowBuilderRef, StudyFlowBuilder
           </Button>
         </div>
       )}
+
+      {/* Interview Mode Selection */}
+        <InterviewModeSelector
+          interviewMode={study.interview_mode || "voice"}
+          cameraRequired={study.camera_required || false}
+          onInterviewModeChange={handleInterviewModeChange}
+          onCameraRequiredChange={handleCameraRequiredChange}
+        />
 
       {/* Welcome Screen */}
         <WelcomeScreenEditor

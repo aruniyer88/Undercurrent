@@ -14,7 +14,6 @@ export const TestPreviewStepContent = forwardRef<StepRef, StepContentProps>(
     const [hasCompletedTest, setHasCompletedTest] = useState(false);
     const [testUrl, setTestUrl] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
-    const [studyStatus, setStudyStatus] = useState<string | null>(null);
 
     // Load test URL
     useEffect(() => {
@@ -36,8 +35,6 @@ export const TestPreviewStepContent = forwardRef<StepRef, StepContentProps>(
 
           if (studyError) throw studyError;
 
-          setStudyStatus(study.status);
-
           // Find or create a test interview
           // Note: The query might fail with 406 due to RLS, so we'll try creating directly
           let existingTest = null;
@@ -49,7 +46,7 @@ export const TestPreviewStepContent = forwardRef<StepRef, StepContentProps>(
               .eq("is_test", true)
               .maybeSingle();
             existingTest = data;
-          } catch (error) {
+          } catch {
             console.log("Could not query existing test interview, will create new one");
           }
 

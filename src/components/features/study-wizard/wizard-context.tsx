@@ -182,12 +182,17 @@ export function WizardProvider({
           return;
         }
 
-        // Step 5: Review & Launch - Check if live
-        const isLive = study.status === "live";
+        // Step 5: Distribution - Check if distribution exists
+        const { data: distribution } = await supabase
+          .from("distributions")
+          .select("id")
+          .eq("study_id", initialStudyId)
+          .eq("is_active", true)
+          .maybeSingle();
 
-        if (isLive) {
+        if (distribution) {
           completed.add(5);
-          firstIncompleteStep = 5; // Stay on review page if already launched
+          firstIncompleteStep = 5; // Stay on distribution page if already created
         }
 
         // Update state with all completed steps

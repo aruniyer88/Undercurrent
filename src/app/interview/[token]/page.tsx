@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { ParticipantInterview } from "@/components/features/participant-interview";
-import { Study, InterviewGuide, StudyFlowWithSections } from "@/lib/types/database";
+import { Study, InterviewGuide, StudyFlowWithSections, Distribution } from "@/lib/types/database";
 
 interface ParticipantInterviewPageProps {
   params: Promise<{ token: string }>;
@@ -11,38 +11,77 @@ export default async function ParticipantInterviewPage({ params }: ParticipantIn
   const { token } = await params;
   const supabase = await createClient();
 
-  // First, try to find an interview by token
-  const { data: interview } = await supabase
-    .from("interviews")
-    .select("study_id, is_test")
-    .eq("token", token)
-    .single();
-
   let study = null;
+  let distribution: Distribution | null = null;
 
-  if (interview) {
-    // Found an interview, get the associated study
-    const { data: studyData } = await supabase
-      .from("studies")
+  // Check if this is a distribution link (10-char base64url format)
+  if (token.length === 10 && /^[A-Za-z0-9_-]+$/.test(token)) {
+    const { data: distributionData } = await supabase
+      .from("distributions")
       .select("*")
-      .eq("id", interview.study_id)
+      .eq("shareable_link_id", token)
+      .eq("is_active", true)
       .single();
 
-    study = studyData;
+    if (distributionData) {
+      distribution = distributionData as Distribution;
 
-    // For test interviews, allow any status. For regular interviews, require "live" status
-    if (!interview.is_test && study?.status !== "live") {
-      notFound();
+      // Check quota
+      if (distribution.max_responses && distribution.current_responses >= distribution.max_responses) {
+        // Quota is full - redirect or show message
+        if (distribution.redirect_quota_full_url) {
+          redirect(distribution.redirect_quota_full_url);
+        }
+        // If no redirect URL, we'll show the study not found page
+        // In a real implementation, you might want a specific "quota full" page
+        notFound();
+      }
+
+      // Load the study
+      const { data: studyData } = await supabase
+        .from("studies")
+        .select("*")
+        .eq("id", distribution.study_id)
+        .single();
+
+      if (studyData?.status === "live") {
+        study = studyData;
+      }
     }
-  } else {
-    // Fallback: Try to find study by token (using first 8 chars of study id)
-    // This is for backwards compatibility
-    const { data: studies } = await supabase
-      .from("studies")
-      .select("*")
-      .eq("status", "live");
+  }
 
-    study = studies?.find(s => s.id.slice(0, 8) === token);
+  // If not found via distribution, try interview token
+  if (!study) {
+    const { data: interview } = await supabase
+      .from("interviews")
+      .select("study_id, is_test")
+      .eq("token", token)
+      .single();
+
+    if (interview) {
+      // Found an interview, get the associated study
+      const { data: studyData } = await supabase
+        .from("studies")
+        .select("*")
+        .eq("id", interview.study_id)
+        .single();
+
+      study = studyData;
+
+      // For test interviews, allow any status. For regular interviews, require "live" status
+      if (!interview.is_test && study?.status !== "live") {
+        notFound();
+      }
+    } else {
+      // Fallback: Try to find study by token (using first 8 chars of study id)
+      // This is for backwards compatibility
+      const { data: studies } = await supabase
+        .from("studies")
+        .select("*")
+        .eq("status", "live");
+
+      study = studies?.find(s => s.id.slice(0, 8) === token);
+    }
   }
 
   if (!study) {

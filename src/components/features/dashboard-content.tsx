@@ -278,7 +278,7 @@ function EmptyState() {
         Create your first project and start gathering insights that actually matter.
       </p>
       <Button
-        onClick={() => router.push("/studies/new")}
+        onClick={() => router.push("/studies/wizard")}
         className="gap-2"
       >
         <Sparkles className="w-4 h-4" />
@@ -442,7 +442,7 @@ export function DashboardContent({ studies }: DashboardContentProps) {
             <h1 className="text-h1 text-text-primary">Projects</h1>
           </div>
           <Button
-            onClick={() => router.push("/studies/new")}
+            onClick={() => router.push("/studies/wizard")}
             size="sm"
             className="gap-2"
           >

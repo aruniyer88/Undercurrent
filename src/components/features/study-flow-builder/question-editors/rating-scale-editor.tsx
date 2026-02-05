@@ -20,12 +20,6 @@ export function RatingScaleEditor({
   touched,
   onUpdate,
 }: RatingScaleEditorProps) {
-  // Generate scale preview
-  const scaleNumbers = Array.from(
-    { length: item.scaleSize },
-    (_, i) => i + 1
-  );
-
   return (
     <div className="space-y-4">
       {/* Question Text */}

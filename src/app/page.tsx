@@ -70,12 +70,12 @@ export default function LandingPage() {
           </Link>
           <div className="flex items-center gap-4">
             <Link href="/login">
-              <Button variant="ghost" size="default">
+              <Button variant="ghost" size="sm">
                 Sign in
               </Button>
             </Link>
             <a href="https://calendly.com" target="_blank" rel="noopener noreferrer">
-              <Button size="default">
+              <Button size="sm">
                 Book a Demo
               </Button>
             </a>
@@ -174,7 +174,7 @@ export default function LandingPage() {
               </div>
             </form>
             <p className="text-caption text-text-muted">
-              We'll get back to you within 24 hours
+              We&apos;ll get back to you within 24 hours
             </p>
           </motion.div>
 
@@ -185,7 +185,7 @@ export default function LandingPage() {
             variants={fadeInUp}
           >
             <p className="text-body text-text-secondary">
-              Trusted by <span className="font-semibold text-text-primary">200+ teams</span> who've completed research in under 48 hours
+              Trusted by <span className="font-semibold text-text-primary">200+ teams</span> who&apos;ve completed research in under 48 hours
             </p>
           </motion.div>
         </motion.div>
@@ -440,7 +440,7 @@ export default function LandingPage() {
             Ready to get insights in 24 hours instead of weeks?
           </h2>
           <p className="text-h3 font-normal text-white/90 mb-10 leading-relaxed">
-            Join 200+ teams who've ditched slow agencies and expensive timelines.
+            Join 200+ teams who&apos;ve ditched slow agencies and expensive timelines.
             Book a 15-minute call to see if Undercurrent is right for you.
           </p>
 
@@ -466,7 +466,7 @@ export default function LandingPage() {
               </div>
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="w-5 h-5" />
-                <span>See if it's a fit</span>
+                <span>See if it&apos;s a fit</span>
               </div>
             </div>
           </div>
