@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Trash2, Image, Link, Video, Upload } from "lucide-react";
+import { Trash2, Image as ImageIcon, Link, Video, Upload } from "lucide-react";
 import { Stimulus, StimulusType } from "@/lib/types/study-flow";
 import { cn } from "@/lib/utils";
 
@@ -122,7 +122,7 @@ export function StimulusEditor({
       <Tabs value={activeTab} onValueChange={handleTabChange}>
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="image" className="gap-1.5">
-            <Image className="w-4 h-4" />
+            <ImageIcon className="w-4 h-4" />
             Image
           </TabsTrigger>
           <TabsTrigger value="website" className="gap-1.5">

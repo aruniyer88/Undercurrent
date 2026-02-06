@@ -67,6 +67,7 @@ export function WizardContent({ onUnsavedChanges }: WizardContentProps) {
     setCanProceed,
     closeWizard,
     activeSection,
+    studyStatus,
   } = useWizard();
 
   const stepRef = useRef<StepRef>(null);
@@ -138,12 +139,11 @@ export function WizardContent({ onUnsavedChanges }: WizardContentProps) {
       const success = await stepRef.current.save();
       if (success) {
         onUnsavedChanges(false);
-        closeWizard();
       }
     } finally {
       setIsLoading(false);
     }
-  }, [setIsLoading, closeWizard, onUnsavedChanges]);
+  }, [setIsLoading, onUnsavedChanges]);
 
   // Track dirty state from step
   useEffect(() => {
@@ -207,10 +207,10 @@ export function WizardContent({ onUnsavedChanges }: WizardContentProps) {
   return (
     <div className="flex flex-col min-h-screen" style={{ backgroundColor: '#fafafa' }}>
       {/* Header - sticky */}
-      <div className="sticky top-0 z-10 px-8 py-2 border-b border-border-subtle bg-surface">
-        <div className="flex items-center justify-between gap-4">
+      <div className="sticky top-0 z-10 h-16 px-8 flex items-center border-b border-border-subtle bg-surface">
+        <div className="flex-1 flex items-center justify-between gap-4">
           <div className="flex-1">
-            <h2 className="text-h4 text-text-primary">{headerInfo?.title}</h2>
+            <h2 className="text-h3 text-text-primary">{headerInfo?.title}</h2>
             <p className="text-sm text-text-muted mt-0.5">{headerInfo?.description}</p>
           </div>
           <div className="flex items-center gap-2">
@@ -248,8 +248,8 @@ export function WizardContent({ onUnsavedChanges }: WizardContentProps) {
         {renderSectionContent()}
       </div>
 
-      {/* Footer - sticky at bottom, only show for setup section */}
-      {activeSection === "setup" && (
+      {/* Footer - sticky at bottom, only show for setup section. Hide on step 5 when study is already live/closed/paused */}
+      {activeSection === "setup" && !(currentStep === 5 && (studyStatus === "live" || studyStatus === "closed" || studyStatus === "paused")) && (
         <div className="sticky bottom-0 z-10">
           <WizardFooter
             onNext={handleNext}

@@ -7,11 +7,12 @@
 // ENUM TYPES
 // ============================================
 
-export type StudyStatus = 
+export type StudyStatus =
   | 'draft'
   | 'ready_for_test'
   | 'tested'
   | 'live'
+  | 'paused'
   | 'closed';
 
 export type ProjectType = 

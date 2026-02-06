@@ -1,21 +1,10 @@
 "use client";
 
 import { BarChart3, FileText, Users } from "lucide-react";
-import { useWizard } from "../wizard-context";
 
 export function ResponsesSection() {
-  const { projectName } = useWizard();
-
   return (
     <div className="max-w-4xl mx-auto py-8">
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-h1 text-text-primary mb-2">Responses</h1>
-        <p className="text-body text-text-muted">
-          View and manage interview responses for {projectName || "your study"}
-        </p>
-      </div>
-
       {/* Placeholder content */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {/* Total Responses Card */}

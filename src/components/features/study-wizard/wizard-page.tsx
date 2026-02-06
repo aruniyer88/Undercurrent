@@ -14,15 +14,18 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { NavSection } from "./wizard-types";
 
 interface WizardPageProps {
   studyId?: string;
   initialStep?: number;
+  initialSection?: NavSection;
 }
 
 export function WizardPage({
   studyId,
   initialStep = 1,
+  initialSection,
 }: WizardPageProps) {
   const router = useRouter();
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
@@ -69,6 +72,7 @@ export function WizardPage({
         <WizardProvider
           initialStudyId={studyId}
           initialStep={initialStep}
+          initialSection={initialSection}
           onClose={handleClose}
         >
           {/* Sidebar - sticky on left */}

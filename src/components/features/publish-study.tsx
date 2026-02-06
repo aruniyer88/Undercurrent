@@ -116,7 +116,7 @@ export function PublishStudy({ study, baseUrl }: PublishStudyProps) {
                 </p>
               </div>
             </div>
-            <Link href={`/studies/${study.id}/report`}>
+            <Link href={`/studies/${study.id}`}>
               <Button variant="outline">
                 <BarChart3 className="w-4 h-4 mr-2" />
                 View Report

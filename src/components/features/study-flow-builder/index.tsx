@@ -585,11 +585,12 @@ export const StudyFlowBuilder = forwardRef<StudyFlowBuilderRef, StudyFlowBuilder
     return hasWelcomeMessage && hasQuestions;
   }, [formData]);
 
-  // Store initial state for dirty check
+  // Store initial state for dirty check (only on mount)
   useEffect(() => {
     if (!initialFormDataRef.current) {
       initialFormDataRef.current = formData;
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Check if form has been modified

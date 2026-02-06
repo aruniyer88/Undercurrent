@@ -175,6 +175,7 @@ export const ProjectBasicsStepContent = forwardRef<
           : null;
       }
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [ref]
   );
 

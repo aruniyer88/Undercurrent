@@ -26,6 +26,8 @@ interface NavSectionHeaderProps {
   isDisabled: boolean;
   disabledTooltip?: string;
   badge?: React.ReactNode;
+  isActive?: boolean;
+  showChevron?: boolean;
   onToggle: () => void;
   onClick: () => void;
 }
@@ -37,6 +39,8 @@ function NavSectionHeader({
   isDisabled,
   disabledTooltip,
   badge,
+  isActive,
+  showChevron = true,
   onToggle,
   onClick,
 }: NavSectionHeaderProps) {
@@ -46,7 +50,7 @@ function NavSectionHeader({
       onClick={() => {
         if (!isDisabled) {
           onClick();
-          if (!isExpanded) {
+          if (showChevron && !isExpanded) {
             onToggle();
           }
         }
@@ -56,41 +60,45 @@ function NavSectionHeader({
         "w-full flex items-center justify-between px-4 py-2.5 text-left transition-colors",
         isDisabled
           ? "opacity-50 cursor-not-allowed"
-          : "hover:bg-surface-alt cursor-pointer"
+          : "hover:bg-surface-alt cursor-pointer",
+        isActive && !showChevron && "bg-primary-50"
       )}
     >
       <div className="flex items-center gap-2">
-        <span className={cn("text-text-muted", isDisabled && "opacity-60")}>
+        <span className={cn("text-text-muted", isDisabled && "opacity-60", isActive && !showChevron && "text-primary-600")}>
           {icon}
         </span>
         <span
           className={cn(
             "text-xs font-medium tracking-wide uppercase",
-            isDisabled ? "text-text-muted" : "text-text-muted"
+            isDisabled ? "text-text-muted" : "text-text-muted",
+            isActive && !showChevron && "text-primary-700"
           )}
         >
           {label}
         </span>
         {badge}
       </div>
-      <div
-        onClick={(e) => {
-          e.stopPropagation();
-          if (!isDisabled) {
-            onToggle();
-          }
-        }}
-        className={cn(
-          "p-0.5 rounded transition-colors",
-          !isDisabled && "hover:bg-border-subtle cursor-pointer"
-        )}
-      >
-        {isExpanded ? (
-          <ChevronDown className="w-4 h-4 text-text-muted" />
-        ) : (
-          <ChevronRight className="w-4 h-4 text-text-muted" />
-        )}
-      </div>
+      {showChevron && (
+        <div
+          onClick={(e) => {
+            e.stopPropagation();
+            if (!isDisabled) {
+              onToggle();
+            }
+          }}
+          className={cn(
+            "p-0.5 rounded transition-colors",
+            !isDisabled && "hover:bg-border-subtle cursor-pointer"
+          )}
+        >
+          {isExpanded ? (
+            <ChevronDown className="w-4 h-4 text-text-muted" />
+          ) : (
+            <ChevronRight className="w-4 h-4 text-text-muted" />
+          )}
+        </div>
+      )}
     </button>
   );
 
@@ -129,11 +137,11 @@ export function WizardSidebar() {
   const progressPercent = (completedCount / totalSteps) * 100;
 
   // Check if responses/analysis sections are accessible
-  const canAccessResponses = studyStatus === "live" || studyStatus === "completed";
-  const canAccessAnalysis = studyStatus === "live" || studyStatus === "completed";
+  const canAccessResponses = studyStatus === "live" || studyStatus === "closed" || studyStatus === "paused";
+  const canAccessAnalysis = studyStatus === "live" || studyStatus === "closed" || studyStatus === "paused";
 
-  // Determine if setup section is read-only (completed study)
-  const isSetupReadOnly = studyStatus === "completed";
+  // Determine if setup section is read-only (closed study)
+  const isSetupReadOnly = studyStatus === "closed";
 
   const handleSectionClick = (section: NavSection) => {
     if (section === "responses" && !canAccessResponses) return;
@@ -149,7 +157,7 @@ export function WizardSidebar() {
   return (
     <div className="flex flex-col h-full bg-surface border-r border-border-subtle">
       {/* Project Name Header */}
-      <div className="p-5 border-b border-border-subtle">
+      <div className="h-16 px-5 flex items-center border-b border-border-subtle">
         <h2 className="text-h2 text-text-primary truncate">
           {projectName || "Untitled Project"}
         </h2>
@@ -206,28 +214,14 @@ export function WizardSidebar() {
             section="responses"
             label="RESPONSES"
             icon={<BarChart3 className="w-4 h-4" />}
-            isExpanded={expandedSections.has("responses")}
+            isExpanded={false}
             isDisabled={!canAccessResponses}
             disabledTooltip="Launch study to collect responses"
-            onToggle={() => toggleSectionExpanded("responses")}
+            isActive={activeSection === "responses"}
+            showChevron={false}
+            onToggle={() => {}}
             onClick={() => handleSectionClick("responses")}
           />
-          {expandedSections.has("responses") && canAccessResponses && (
-            <div className="px-2 pb-2">
-              <button
-                type="button"
-                onClick={() => setActiveSection("responses")}
-                className={cn(
-                  "w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all text-left text-body",
-                  activeSection === "responses"
-                    ? "bg-primary-50 border border-primary-200 text-primary-700 font-medium"
-                    : "text-text-secondary hover:bg-surface-alt"
-                )}
-              >
-                View Responses
-              </button>
-            </div>
-          )}
         </div>
 
         {/* ANALYSIS Section */}
@@ -236,28 +230,14 @@ export function WizardSidebar() {
             section="analysis"
             label="ANALYSIS"
             icon={<Lightbulb className="w-4 h-4" />}
-            isExpanded={expandedSections.has("analysis")}
+            isExpanded={false}
             isDisabled={!canAccessAnalysis}
             disabledTooltip="Launch study to access analysis"
-            onToggle={() => toggleSectionExpanded("analysis")}
+            isActive={activeSection === "analysis"}
+            showChevron={false}
+            onToggle={() => {}}
             onClick={() => handleSectionClick("analysis")}
           />
-          {expandedSections.has("analysis") && canAccessAnalysis && (
-            <div className="px-2 pb-2">
-              <button
-                type="button"
-                onClick={() => setActiveSection("analysis")}
-                className={cn(
-                  "w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all text-left text-body",
-                  activeSection === "analysis"
-                    ? "bg-primary-50 border border-primary-200 text-primary-700 font-medium"
-                    : "text-text-secondary hover:bg-surface-alt"
-                )}
-              >
-                View Analysis
-              </button>
-            </div>
-          )}
         </div>
       </nav>
     </div>

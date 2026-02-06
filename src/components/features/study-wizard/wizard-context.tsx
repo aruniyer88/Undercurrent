@@ -32,6 +32,7 @@ interface WizardProviderProps {
   children: ReactNode;
   initialStudyId?: string | null;
   initialStep?: number;
+  initialSection?: NavSection;
   onClose: () => void;
 }
 
@@ -39,6 +40,7 @@ export function WizardProvider({
   children,
   initialStudyId = null,
   initialStep = 1,
+  initialSection,
   onClose,
 }: WizardProviderProps) {
   const [currentStep, setCurrentStep] = useState(initialStep);
@@ -168,7 +170,7 @@ export function WizardProvider({
         }
 
         // Step 4: Test & Preview - Check if tested
-        const hasTested = study.status === "tested" || study.status === "ready_for_test" || study.status === "live";
+        const hasTested = study.status === "tested" || study.status === "ready_for_test" || study.status === "live" || study.status === "closed" || study.status === "paused";
 
         if (hasTested) {
           completed.add(4);
@@ -183,12 +185,18 @@ export function WizardProvider({
         }
 
         // Step 5: Distribution - Check if distribution exists
-        const { data: distribution } = await supabase
+        // For closed/paused studies, don't filter by is_active since the distribution
+        // still exists but may be deactivated
+        let distributionQuery = supabase
           .from("distributions")
           .select("id")
-          .eq("study_id", initialStudyId)
-          .eq("is_active", true)
-          .maybeSingle();
+          .eq("study_id", initialStudyId);
+
+        if (study.status !== "closed" && study.status !== "paused") {
+          distributionQuery = distributionQuery.eq("is_active", true);
+        }
+
+        const { data: distribution } = await distributionQuery.maybeSingle();
 
         if (distribution) {
           completed.add(5);
@@ -199,6 +207,16 @@ export function WizardProvider({
         setCompletedSteps(completed);
         setCurrentStep(firstIncompleteStep);
         setHasCheckedCompletion(true);
+
+        // Apply initialSection if provided (e.g., navigating from dashboard to responses/analysis)
+        if (initialSection) {
+          setActiveSection(initialSection);
+          setExpandedSections(prev => {
+            const next = new Set(prev);
+            next.add(initialSection);
+            return next;
+          });
+        }
       } catch (error) {
         console.error("Error checking step completion:", error);
         // On error, default to step 1
@@ -211,7 +229,7 @@ export function WizardProvider({
     };
 
     checkCompletion();
-  }, [initialStudyId, initialStep, hasCheckedCompletion]);
+  }, [initialStudyId, initialStep, initialSection, hasCheckedCompletion]);
 
   // Build steps with completion and accessibility status
   const steps: WizardStep[] = useMemo(() => {

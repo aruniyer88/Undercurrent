@@ -39,7 +39,7 @@ export const WIZARD_STEPS: Omit<WizardStep, "isComplete" | "isAccessible">[] = [
 // Navigation sections
 export type NavSection = "setup" | "responses" | "analysis";
 
-export type StudyStatus = "draft" | "live" | "completed" | "paused";
+export type StudyStatus = "draft" | "live" | "closed" | "paused";
 
 export interface NavSectionConfig {
   id: NavSection;

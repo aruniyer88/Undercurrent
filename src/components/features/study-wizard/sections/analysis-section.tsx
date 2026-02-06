@@ -1,21 +1,10 @@
 "use client";
 
 import { Lightbulb, TrendingUp, MessageSquareQuote, Tags } from "lucide-react";
-import { useWizard } from "../wizard-context";
 
 export function AnalysisSection() {
-  const { projectName } = useWizard();
-
   return (
     <div className="max-w-4xl mx-auto py-8">
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-h1 text-text-primary mb-2">Analysis</h1>
-        <p className="text-body text-text-muted">
-          AI-powered insights and analysis for {projectName || "your study"}
-        </p>
-      </div>
-
       {/* Placeholder content */}
       <div className="grid gap-6 md:grid-cols-2">
         {/* Key Insights Card */}

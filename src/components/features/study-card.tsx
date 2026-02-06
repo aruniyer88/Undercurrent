@@ -39,12 +39,12 @@ export function StudyCard({ study, statusConfig }: StudyCardProps) {
       case "draft":
         return `/studies/wizard?studyId=${study.id}`;
       case "ready_for_test":
-        return `/studies/${study.id}/test`;
       case "tested":
-        return `/studies/${study.id}/publish`;
+        return `/studies/wizard?studyId=${study.id}`;
       case "live":
       case "closed":
-        return `/studies/${study.id}/report`;
+      case "paused":
+        return `/studies/${study.id}`;
       default:
         return `/studies/wizard?studyId=${study.id}`;
     }

@@ -20,23 +20,29 @@ export default async function StudyPage({ params }: StudyPageProps) {
     notFound();
   }
 
-  // Redirect based on study status
-  switch (study.status) {
-    case "draft":
-      // Draft studies go to the wizard for editing
+  // For live, paused, or closed studies: route based on response count
+  if (study.status === "live" || study.status === "paused" || study.status === "closed") {
+    const { count } = await supabase
+      .from("interviews")
+      .select("id", { count: "exact", head: true })
+      .eq("study_id", id)
+      .eq("status", "completed")
+      .eq("is_test", false);
+
+    const responseCount = count ?? 0;
+
+    if (responseCount === 0) {
+      // No responses — show distribution page (step 5)
       redirect(`/studies/wizard?studyId=${id}`);
-    case "ready_for_test":
-    case "tested":
-      // Ready/tested studies go to the test page
-      redirect(`/studies/${id}/test`);
-    case "live":
-      // Live studies go to the report/monitoring page
-      redirect(`/studies/${id}/report`);
-    case "closed":
-      // Closed studies go to the report page
-      redirect(`/studies/${id}/report`);
-    default:
-      // Default to wizard
-      redirect(`/studies/wizard?studyId=${id}`);
+    } else if (responseCount <= 3) {
+      // Few responses — show responses section
+      redirect(`/studies/wizard?studyId=${id}&section=responses`);
+    } else {
+      // Enough data for analysis
+      redirect(`/studies/wizard?studyId=${id}&section=analysis`);
+    }
   }
+
+  // Draft, ready_for_test, tested — let wizard completion check handle step
+  redirect(`/studies/wizard?studyId=${id}`);
 }

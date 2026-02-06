@@ -7,6 +7,22 @@ interface ParticipantInterviewPageProps {
   params: Promise<{ token: string }>;
 }
 
+function StudyUnavailable({ title, message }: { title: string; message: string }) {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-neutral-50 px-4">
+      <div className="max-w-md w-full text-center space-y-4">
+        <div className="w-16 h-16 bg-neutral-100 rounded-full flex items-center justify-center mx-auto">
+          <svg className="w-8 h-8 text-neutral-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+          </svg>
+        </div>
+        <h1 className="text-xl font-semibold text-neutral-900">{title}</h1>
+        <p className="text-neutral-600">{message}</p>
+      </div>
+    </div>
+  );
+}
+
 export default async function ParticipantInterviewPage({ params }: ParticipantInterviewPageProps) {
   const { token } = await params;
   const supabase = await createClient();
@@ -16,36 +32,59 @@ export default async function ParticipantInterviewPage({ params }: ParticipantIn
 
   // Check if this is a distribution link (10-char base64url format)
   if (token.length === 10 && /^[A-Za-z0-9_-]+$/.test(token)) {
+    // Query without is_active filter so we can show friendly messages for paused/ended studies
     const { data: distributionData } = await supabase
       .from("distributions")
       .select("*")
       .eq("shareable_link_id", token)
-      .eq("is_active", true)
       .single();
 
     if (distributionData) {
       distribution = distributionData as Distribution;
 
-      // Check quota
-      if (distribution.max_responses && distribution.current_responses >= distribution.max_responses) {
-        // Quota is full - redirect or show message
-        if (distribution.redirect_quota_full_url) {
-          redirect(distribution.redirect_quota_full_url);
-        }
-        // If no redirect URL, we'll show the study not found page
-        // In a real implementation, you might want a specific "quota full" page
-        notFound();
-      }
-
-      // Load the study
+      // Load the study to check its status
       const { data: studyData } = await supabase
         .from("studies")
         .select("*")
         .eq("id", distribution.study_id)
         .single();
 
-      if (studyData?.status === "live") {
-        study = studyData;
+      if (studyData) {
+        // Handle inactive distributions
+        if (!distribution.is_active) {
+          if (studyData.status === "paused") {
+            return (
+              <StudyUnavailable
+                title="Study Paused"
+                message="This study is temporarily unavailable. Please check back later."
+              />
+            );
+          }
+          // closed or any other inactive reason
+          return (
+            <StudyUnavailable
+              title="Study Ended"
+              message="This study has ended and is no longer accepting responses."
+            />
+          );
+        }
+
+        // Check quota
+        if (distribution.max_responses && distribution.current_responses >= distribution.max_responses) {
+          if (distribution.redirect_quota_full_url) {
+            redirect(distribution.redirect_quota_full_url);
+          }
+          return (
+            <StudyUnavailable
+              title="Study Full"
+              message="This study has reached its maximum number of responses."
+            />
+          );
+        }
+
+        if (studyData.status === "live") {
+          study = studyData;
+        }
       }
     }
   }
@@ -152,4 +191,3 @@ export default async function ParticipantInterviewPage({ params }: ParticipantIn
     />
   );
 }
-

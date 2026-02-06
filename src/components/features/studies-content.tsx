@@ -5,7 +5,7 @@ import { Study, StudyStatus } from "@/lib/types/database";
 import { StudyCard } from "@/components/features/study-card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { FileText, Clock, CheckCircle2, Radio, Archive } from "lucide-react";
+import { FileText, Clock, CheckCircle2, Radio, Archive, Pause } from "lucide-react";
 
 interface StudiesContentProps {
   studies: Study[];
@@ -16,6 +16,7 @@ const statusConfig: Record<StudyStatus, { label: string; icon: React.ElementType
   ready_for_test: { label: "Ready to Test", icon: Clock, className: "badge-ready" },
   tested: { label: "Tested", icon: CheckCircle2, className: "badge-tested" },
   live: { label: "Live", icon: Radio, className: "badge-live" },
+  paused: { label: "Paused", icon: Pause, className: "badge-ready" },
   closed: { label: "Closed", icon: Archive, className: "badge-closed" },
 };
 
