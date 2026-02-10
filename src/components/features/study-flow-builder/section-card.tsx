@@ -45,6 +45,7 @@ interface SectionCardProps {
   sectionErrors?: SectionValidationErrors;
   touched?: boolean;
   canDelete: boolean;
+  studyType?: import("@/lib/types/database").StudyType;
   onUpdate: (updates: Partial<Section>) => void;
   onDelete: () => void;
   onAddItem: (type: ItemType) => void;
@@ -57,6 +58,7 @@ export function SectionCard({
   sectionErrors,
   touched,
   canDelete,
+  studyType,
   onUpdate,
   onDelete,
   onAddItem,
@@ -199,7 +201,7 @@ export function SectionCard({
                 </SortableContext>
 
                 {/* Add Question Button */}
-                <AddItemMenu onSelect={onAddItem} />
+                <AddItemMenu onSelect={onAddItem} studyType={studyType} />
               </div>
             </div>
           </CollapsibleContent>

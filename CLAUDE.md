@@ -24,6 +24,27 @@ ASSUMPTIONS I'M MAKING:
 Never silently fill in ambiguous requirements. The most common failure mode is making wrong assumptions and running with them unchecked. Surface uncertainty early.
 </behavior>
 
+<behavior name="use_context7_for_docs" priority="high">
+Always use the Context7 MCP to look up documentation before implementing with any library or framework in this project (Next.js, Supabase JS, Radix UI, Tailwind, dnd-kit, ElevenLabs, OpenAI SDK, etc.). Call resolve-library-id first, then get-library-docs with the resolved ID. Never rely on training data for API usage — pull live docs every time.
+</behavior>
+
+<behavior name="supabase_mcp_migrations" priority="high">
+Use the Supabase MCP server for all database-related work:
+- Use apply_migration for any DDL/schema changes (new tables, columns, RLS policies, indexes).
+- Use execute_sql for read-only exploration or non-schema queries.
+- Use list_tables and list_migrations to verify current state before proposing changes.
+
+IMPORTANT: Before executing ANY migration or mutating SQL, present the full SQL to the human for approval. Format it as:
+
+DB CHANGE PENDING APPROVAL:
+-- [description of what this does]
+[full SQL]
+→ Say "approved" to apply, or redirect.
+
+Never apply schema changes silently. The human must see and approve every migration before it hits the database.
+</behavior>
+
+
 <behavior name="confusion_management" priority="critical">
 When you encounter inconsistencies, conflicting requirements, or unclear specifications:
 
@@ -201,9 +222,8 @@ npm run lint
 
 ### Database Migrations
 ```bash
-# Migrations are in supabase/migrations/
-# Apply via Supabase dashboard or CLI
-# Migration order: 001_initial_schema.sql → 005_add_video_recording.sql
+### Database Migrations
+Migrations are managed via the Supabase MCP server (`apply_migration` tool). Claude will draft migration SQL and present it for your approval before applying. To review current state, use `list_migrations` / `list_tables` via MCP. Migration history also lives in `supabase/migrations/` for reference.
 ```
 
 ## Tech Stack

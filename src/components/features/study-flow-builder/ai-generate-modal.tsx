@@ -78,6 +78,7 @@ export function AIGenerateModal({
             aboutInterviewer: study.about_interviewer || "",
             language: study.language || "English",
           },
+          studyType: study.study_type || "structured",
           additionalDetails: option === "with_details" ? additionalDetails : undefined,
         }),
       });

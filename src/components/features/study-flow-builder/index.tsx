@@ -20,7 +20,7 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ArrowRight, Save, Loader2, Sparkles, Plus } from "lucide-react";
+import { ArrowLeft, ArrowRight, Save, Loader2, Sparkles, Plus, Clock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { createClient } from "@/lib/supabase/client";
 import { Study, StudyFlow, FlowSection as DBFlowSection, FlowItem as DBFlowItem } from "@/lib/types/database";
@@ -37,7 +37,6 @@ import {
 } from "@/lib/types/study-flow";
 
 import { WelcomeScreenEditor } from "./welcome-screen-editor";
-import { InterviewModeSelector } from "./interview-mode-selector";
 import { SectionCard } from "./section-card";
 import { AIGenerateModal } from "./ai-generate-modal";
 
@@ -264,68 +263,6 @@ export const StudyFlowBuilder = forwardRef<StudyFlowBuilderRef, StudyFlowBuilder
       }
     },
     [errors]
-  );
-
-  // ============================================
-  // INTERVIEW MODE HANDLERS
-  // ============================================
-
-  const handleInterviewModeChange = useCallback(
-    async (mode: "voice" | "video") => {
-      try {
-        const { error } = await supabase
-          .from("studies")
-          .update({ interview_mode: mode })
-          .eq("id", study.id);
-
-        if (error) throw error;
-
-        // Update local study object
-        study.interview_mode = mode;
-
-        toast({
-          title: "Interview mode updated",
-          description: `Interview mode set to ${mode}.`,
-        });
-      } catch (error) {
-        console.error("Error updating interview mode:", error);
-        toast({
-          title: "Error",
-          description: "Failed to update interview mode. Please try again.",
-          variant: "destructive",
-        });
-      }
-    },
-    [study, supabase, toast]
-  );
-
-  const handleCameraRequiredChange = useCallback(
-    async (required: boolean) => {
-      try {
-        const { error } = await supabase
-          .from("studies")
-          .update({ camera_required: required })
-          .eq("id", study.id);
-
-        if (error) throw error;
-
-        // Update local study object
-        study.camera_required = required;
-
-        toast({
-          title: "Camera settings updated",
-          description: `Camera is now ${required ? "required" : "optional"}.`,
-        });
-      } catch (error) {
-        console.error("Error updating camera requirement:", error);
-        toast({
-          title: "Error",
-          description: "Failed to update camera settings. Please try again.",
-          variant: "destructive",
-        });
-      }
-    },
-    [study, supabase, toast]
   );
 
   // ============================================
@@ -576,6 +513,50 @@ export const StudyFlowBuilder = forwardRef<StudyFlowBuilderRef, StudyFlowBuilder
     return !hasErrors;
   }, [formData]);
 
+  // Duration estimation
+  const estimatedDuration = useMemo(() => {
+    let totalSeconds = 30; // Welcome overhead
+
+    formData.sections.forEach((section, idx) => {
+      if (idx > 0) totalSeconds += 10; // Section transition
+
+      // Stimulus time
+      if (section.stimulus) {
+        switch (section.stimulus.type) {
+          case "image": totalSeconds += 30; break;
+          case "website": totalSeconds += 90; break;
+          case "youtube": totalSeconds += 120; break;
+        }
+      }
+
+      section.items.forEach((item) => {
+        switch (item.type) {
+          case "open_ended":
+            totalSeconds += 60;
+            if (item.probingMode === "auto") totalSeconds += 45;
+            break;
+          case "ai_conversation":
+            totalSeconds += item.durationSeconds;
+            break;
+          case "single_select":
+          case "multi_select":
+            totalSeconds += 15;
+            break;
+          case "rating_scale":
+          case "ranking":
+            totalSeconds += 20;
+            break;
+          case "instruction":
+            totalSeconds += 10;
+            break;
+        }
+      });
+    });
+
+    const minutes = Math.ceil(totalSeconds / 60);
+    return minutes;
+  }, [formData.sections]);
+
   // Check if form is valid for enabling Next button
   const isFormValid = useMemo(() => {
     const hasWelcomeMessage = formData.welcomeScreen.message.length >= 20;
@@ -590,8 +571,7 @@ export const StudyFlowBuilder = forwardRef<StudyFlowBuilderRef, StudyFlowBuilder
     if (!initialFormDataRef.current) {
       initialFormDataRef.current = formData;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [formData]);
 
   // Check if form has been modified
   const isDirty = useCallback(() => {
@@ -836,14 +816,6 @@ export const StudyFlowBuilder = forwardRef<StudyFlowBuilderRef, StudyFlowBuilder
         </div>
       )}
 
-      {/* Interview Mode Selection */}
-        <InterviewModeSelector
-          interviewMode={study.interview_mode || "voice"}
-          cameraRequired={study.camera_required || false}
-          onInterviewModeChange={handleInterviewModeChange}
-          onCameraRequiredChange={handleCameraRequiredChange}
-        />
-
       {/* Welcome Screen */}
         <WelcomeScreenEditor
           data={formData.welcomeScreen}
@@ -851,6 +823,12 @@ export const StudyFlowBuilder = forwardRef<StudyFlowBuilderRef, StudyFlowBuilder
           touched={touched.all}
           onChange={updateWelcomeScreen}
         />
+
+        {/* Duration Estimate */}
+        <div className="flex items-center gap-2 text-sm text-text-muted px-1">
+          <Clock className="w-4 h-4" />
+          <span>Estimated duration: ~{estimatedDuration} min</span>
+        </div>
 
         {/* Sections */}
         <DndContext
@@ -871,6 +849,7 @@ export const StudyFlowBuilder = forwardRef<StudyFlowBuilderRef, StudyFlowBuilder
                   sectionErrors={errors.sections?.[section.id]}
                   touched={touched.all}
                   canDelete={formData.sections.length > 1}
+                  studyType={study.study_type}
                   onUpdate={(updates) => updateSection(section.id, updates)}
                   onDelete={() => deleteSection(section.id)}
                   onAddItem={(type) => addItem(section.id, type)}

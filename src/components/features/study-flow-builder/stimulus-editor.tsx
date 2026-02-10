@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Trash2, Image as ImageIcon, Link, Video, Upload } from "lucide-react";
+import { Trash2, ImageIcon, Link, Video, Upload } from "lucide-react";
 import { Stimulus, StimulusType } from "@/lib/types/study-flow";
 import { cn } from "@/lib/utils";
 

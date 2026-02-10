@@ -1,72 +1,83 @@
 "use client";
 
-import { BarChart3, FileText, Users } from "lucide-react";
+import { useState } from "react";
+import { Loader2 } from "lucide-react";
+import { useWizard } from "../wizard-context";
+import { useResponses } from "@/hooks/use-responses";
+import { ResponsesOverview } from "@/components/features/responses/responses-overview";
+import { FilterBar } from "@/components/features/responses/filter-bar";
+import { ResponsesList } from "@/components/features/responses/responses-list";
+import { EmptyState } from "@/components/features/responses/empty-state";
+import { ResponseDetailDialog } from "@/components/features/responses/response-detail-dialog";
 
 export function ResponsesSection() {
+  const { studyId } = useWizard();
+  const { sessions, stats, filters, setFilters, isLoading, mutate } =
+    useResponses(studyId);
+  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(
+    null
+  );
+
+  // Find index of selected session for prev/next navigation
+  const selectedIndex = selectedSessionId
+    ? sessions.findIndex((s) => s.id === selectedSessionId)
+    : -1;
+
+  const handlePrev = () => {
+    if (selectedIndex > 0) {
+      setSelectedSessionId(sessions[selectedIndex - 1].id);
+    }
+  };
+
+  const handleNext = () => {
+    if (selectedIndex < sessions.length - 1) {
+      setSelectedSessionId(sessions[selectedIndex + 1].id);
+    }
+  };
+
+  if (isLoading && sessions.length === 0) {
+    return (
+      <div className="max-w-5xl mx-auto py-8 flex items-center justify-center">
+        <Loader2 className="w-6 h-6 animate-spin text-text-muted" />
+        <span className="ml-2 text-sm text-text-muted">Loading responses...</span>
+      </div>
+    );
+  }
+
   return (
-    <div className="max-w-4xl mx-auto py-8">
-      {/* Placeholder content */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {/* Total Responses Card */}
-        <div className="bg-surface rounded-xl border border-border-subtle p-6">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 rounded-lg bg-primary-50 flex items-center justify-center">
-              <Users className="w-5 h-5 text-primary-600" />
-            </div>
-            <div>
-              <p className="text-caption text-text-muted">Total Responses</p>
-              <p className="text-h2 text-text-primary">--</p>
-            </div>
-          </div>
-          <p className="text-caption text-text-muted">
-            Responses will appear here once your study is live
-          </p>
-        </div>
+    <div className="max-w-5xl mx-auto py-8 space-y-6">
+      {/* Layer 1: Overview */}
+      <ResponsesOverview stats={stats} />
 
-        {/* Completion Rate Card */}
-        <div className="bg-surface rounded-xl border border-border-subtle p-6">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 rounded-lg bg-success-50 flex items-center justify-center">
-              <BarChart3 className="w-5 h-5 text-success-600" />
-            </div>
-            <div>
-              <p className="text-caption text-text-muted">Completion Rate</p>
-              <p className="text-h2 text-text-primary">--</p>
-            </div>
-          </div>
-          <p className="text-caption text-text-muted">
-            Track how many participants complete the full interview
-          </p>
-        </div>
+      {/* Empty state or list */}
+      {stats.totalSessions === 0 ? (
+        <EmptyState />
+      ) : (
+        <>
+          {/* Filter Bar */}
+          <FilterBar filters={filters} onChange={setFilters} />
 
-        {/* Transcripts Card */}
-        <div className="bg-surface rounded-xl border border-border-subtle p-6">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 rounded-lg bg-warning-50 flex items-center justify-center">
-              <FileText className="w-5 h-5 text-warning-600" />
-            </div>
-            <div>
-              <p className="text-caption text-text-muted">Transcripts</p>
-              <p className="text-h2 text-text-primary">--</p>
-            </div>
-          </div>
-          <p className="text-caption text-text-muted">
-            Full transcripts of each interview session
-          </p>
-        </div>
-      </div>
+          {/* Layer 2: Response List */}
+          <ResponsesList
+            sessions={sessions}
+            studyId={studyId!}
+            onSelectSession={setSelectedSessionId}
+            onMutate={mutate}
+          />
+        </>
+      )}
 
-      {/* Empty state message */}
-      <div className="mt-12 text-center py-12 bg-surface rounded-xl border border-border-subtle">
-        <div className="w-16 h-16 rounded-full bg-surface-alt flex items-center justify-center mx-auto mb-4">
-          <BarChart3 className="w-8 h-8 text-text-muted" />
-        </div>
-        <h3 className="text-h3 text-text-primary mb-2">No responses yet</h3>
-        <p className="text-body text-text-muted max-w-md mx-auto">
-          Share your study link with participants to start collecting responses.
-          All interview data will appear here in real-time.
-        </p>
-      </div>
+      {/* Layer 3: Response Detail Dialog */}
+      {selectedSessionId && studyId && (
+        <ResponseDetailDialog
+          studyId={studyId}
+          sessionId={selectedSessionId}
+          onClose={() => setSelectedSessionId(null)}
+          onPrev={selectedIndex > 0 ? handlePrev : undefined}
+          onNext={selectedIndex < sessions.length - 1 ? handleNext : undefined}
+          onReviewChange={mutate}
+        />
+      )}
     </div>
   );
 }

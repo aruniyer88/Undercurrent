@@ -48,9 +48,7 @@ export default function LandingPage() {
 
   const handleEmailSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Handle email submission
-    console.log("Email submitted:", email);
-    // You can add your email handling logic here
+    // TODO: Handle email submission (e.g. send to CRM or waitlist API)
   };
 
   return (

@@ -15,6 +15,8 @@ interface UseVoiceRecorderReturn {
   audioUrl: string | null;
   error: string | null;
   permissionState: "prompt" | "granted" | "denied" | "checking";
+  /** The active MediaStream during recording — use for AnalyserNode connection */
+  mediaStream: MediaStream | null;
 
   // Actions
   startRecording: () => Promise<void>;
@@ -250,6 +252,7 @@ export function useVoiceRecorder(
     audioUrl,
     error,
     permissionState,
+    mediaStream: streamRef.current,
     startRecording,
     stopRecording,
     resetRecording,

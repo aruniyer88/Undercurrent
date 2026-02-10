@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
 import { randomBytes } from "crypto";
+import { ensureStudyAgent } from "@/lib/elevenlabs/agents";
 
 // POST /api/distributions - Create a new distribution for a study
 export async function POST(request: NextRequest) {
@@ -34,7 +35,7 @@ export async function POST(request: NextRequest) {
     // Verify the study exists and belongs to the user
     const { data: study, error: studyError } = await supabase
       .from("studies")
-      .select("id, user_id, status")
+      .select("id, user_id, status, study_type")
       .eq("id", study_id)
       .single();
 
@@ -101,6 +102,20 @@ export async function POST(request: NextRequest) {
       console.error("Error updating study status:", updateError);
       // Distribution was created but study status update failed
       // Continue and return the distribution anyway
+    }
+
+    // Create a dedicated ElevenLabs agent for streaming studies
+    if (study.study_type === "streaming") {
+      try {
+        await ensureStudyAgent(study_id);
+      } catch (agentError) {
+        console.error("Error creating ElevenLabs agent:", agentError);
+        // Return the distribution but flag the agent creation failure
+        return NextResponse.json(
+          { distribution, warning: "Distribution created but ElevenLabs agent creation failed. Streaming interviews may not work." },
+          { status: 201 }
+        );
+      }
     }
 
     return NextResponse.json({ distribution }, { status: 201 });

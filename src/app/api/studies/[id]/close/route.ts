@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
+import { deleteStudyAgent } from "@/lib/elevenlabs/agents";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -57,6 +58,11 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       .from("distributions")
       .update({ is_active: false })
       .eq("study_id", id);
+
+    // Clean up ElevenLabs agent (non-blocking — don't fail the close if this errors)
+    deleteStudyAgent(id).catch((err) =>
+      console.error("Failed to delete ElevenLabs agent on close:", err)
+    );
 
     return NextResponse.json({ study: updatedStudy });
   } catch (error) {

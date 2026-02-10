@@ -1,6 +1,6 @@
 "use client";
 
-import { forwardRef, useCallback, useState, useEffect } from "react";
+import { forwardRef, useCallback, useRef, useState, useEffect } from "react";
 import {
   ProjectBasicsStep,
   ProjectBasicsFormData,
@@ -26,7 +26,7 @@ export const ProjectBasicsStepContent = forwardRef<
   const { setProjectName } = useWizard();
   const [initialData, setInitialData] = useState<Partial<ProjectBasicsFormData> | undefined>();
   const [isLoading, setIsLoading] = useState(!!studyId);
-  const innerRef = { current: null as ProjectBasicsStepRef | null };
+  const innerRef = useRef<ProjectBasicsStepRef | null>(null);
 
   // Load existing study data if editing
   useEffect(() => {
@@ -39,7 +39,7 @@ export const ProjectBasicsStepContent = forwardRef<
       const supabase = createClient();
       const { data: study, error } = await supabase
         .from("studies")
-        .select("title, about_interviewer, audience, objective, language")
+        .select("title, about_interviewer, audience, objective, language, study_type, interview_mode, camera_required")
         .eq("id", studyId)
         .single();
 
@@ -57,6 +57,9 @@ export const ProjectBasicsStepContent = forwardRef<
           aboutAudience: study.audience || "",
           objectiveContext: study.objective || "",
           language: (study.language as ProjectBasicsFormData["language"]) || "English",
+          studyType: (study.study_type as ProjectBasicsFormData["studyType"]) || "structured",
+          interviewMode: (study.interview_mode as ProjectBasicsFormData["interviewMode"]) || "voice",
+          cameraRequired: study.camera_required || false,
         });
       }
       setIsLoading(false);
@@ -81,6 +84,9 @@ export const ProjectBasicsStepContent = forwardRef<
               audience: data.aboutAudience,
               objective: data.objectiveContext,
               language: data.language,
+              study_type: data.studyType,
+              interview_mode: data.interviewMode,
+              camera_required: data.cameraRequired,
             })
             .eq("id", studyId);
 
@@ -115,6 +121,9 @@ export const ProjectBasicsStepContent = forwardRef<
               audience: data.aboutAudience,
               about_interviewer: data.aboutInterviewer,
               language: data.language,
+              study_type: data.studyType,
+              interview_mode: data.interviewMode,
+              camera_required: data.cameraRequired,
               brief_messages: [],
             })
             .select()
@@ -175,8 +184,7 @@ export const ProjectBasicsStepContent = forwardRef<
           : null;
       }
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [ref]
+    [ref, innerRef]
   );
 
   if (isLoading) {

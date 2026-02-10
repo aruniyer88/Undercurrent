@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useWizard } from "./wizard-context";
 import { WizardFooter } from "./wizard-footer";
 import { StepRef } from "./wizard-types";
+import { useToast } from "@/hooks/use-toast";
 
 // Step components will be imported here
 import { ProjectBasicsStepContent } from "./steps/project-basics-step";
@@ -69,6 +70,7 @@ export function WizardContent({ onUnsavedChanges }: WizardContentProps) {
     activeSection,
     studyStatus,
   } = useWizard();
+  const { toast } = useToast();
 
   const stepRef = useRef<StepRef>(null);
   const stepInfo = STEP_TITLES[currentStep];
@@ -93,6 +95,52 @@ export function WizardContent({ onUnsavedChanges }: WizardContentProps) {
     [setStudyId]
   );
 
+  // Generate or refresh AI persona after Step 1 or Step 2 changes
+  const generatePersonaIfNeeded = useCallback(async () => {
+    if (!studyId) return;
+
+    try {
+      // Check if persona needs (re)generation
+      const supabase = (await import("@/lib/supabase/client")).createClient();
+      const { data: study } = await supabase
+        .from("studies")
+        .select("ai_persona_generated_at, updated_at")
+        .eq("id", studyId)
+        .single();
+
+      if (!study) return;
+
+      // Persona is stale if: never generated, or study was updated after generation
+      const isStale = !study.ai_persona_generated_at ||
+        new Date(study.updated_at) > new Date(study.ai_persona_generated_at);
+
+      if (isStale) {
+        // Fire-and-forget — don't block the wizard navigation
+        fetch("/api/ai/generate-persona", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ study_id: studyId }),
+        }).then((res) => {
+          if (!res.ok) {
+            toast({
+              title: "AI persona generation failed",
+              description: "The interview will still work, but the AI personality may be generic. You can retry by saving Step 1 again.",
+              variant: "destructive",
+            });
+          }
+        }).catch(() => {
+          toast({
+            title: "AI persona generation failed",
+            description: "The interview will still work, but the AI personality may be generic. You can retry by saving Step 1 again.",
+            variant: "destructive",
+          });
+        });
+      }
+    } catch (err) {
+      console.error("Error checking persona staleness:", err);
+    }
+  }, [studyId]);
+
   // Handle Next button
   const handleNext = useCallback(async () => {
     if (!stepRef.current) return;
@@ -107,12 +155,19 @@ export function WizardContent({ onUnsavedChanges }: WizardContentProps) {
       const success = await stepRef.current.save();
       if (success) {
         onUnsavedChanges(false);
+
+        // Trigger persona generation after Step 1 or Step 2 saves
+        // (these steps affect the inputs used to generate the persona)
+        if (currentStep === 1 || currentStep === 2) {
+          generatePersonaIfNeeded();
+        }
+
         await nextStep();
       }
     } finally {
       setIsLoading(false);
     }
-  }, [nextStep, setIsLoading, onUnsavedChanges]);
+  }, [currentStep, nextStep, setIsLoading, onUnsavedChanges, generatePersonaIfNeeded]);
 
   // Handle Save Draft
   const handleSaveDraft = useCallback(async () => {
@@ -120,12 +175,19 @@ export function WizardContent({ onUnsavedChanges }: WizardContentProps) {
 
     setIsSaving(true);
     try {
-      await stepRef.current.save();
-      onUnsavedChanges(false);
+      const success = await stepRef.current.save();
+      if (success) {
+        onUnsavedChanges(false);
+
+        // Refresh persona if basics or flow changed
+        if (currentStep === 1 || currentStep === 2) {
+          generatePersonaIfNeeded();
+        }
+      }
     } finally {
       setIsSaving(false);
     }
-  }, [setIsSaving, onUnsavedChanges]);
+  }, [currentStep, setIsSaving, onUnsavedChanges, generatePersonaIfNeeded]);
 
   // Handle Launch (step 5)
   const handleLaunch = useCallback(async () => {

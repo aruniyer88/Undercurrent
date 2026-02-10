@@ -33,9 +33,10 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { StudyWithRelations, StudyStatus } from "@/lib/types/database";
+import { formatRelativeTime } from "@/lib/utils/format";
 
 // Type for project status (display)
-type ProjectStatus = "draft" | "ready" | "live" | "closed";
+type ProjectStatus = "draft" | "ready" | "live" | "paused" | "closed";
 
 interface Project {
   id: string;
@@ -61,24 +62,13 @@ function mapStudyStatus(status: StudyStatus): ProjectStatus {
       return "ready";
     case "live":
       return "live";
+    case "paused":
+      return "paused";
     case "closed":
       return "closed";
     default:
       return "draft";
   }
-}
-
-// Helper function to format relative time
-function formatRelativeTime(date: Date): string {
-  const now = new Date();
-  const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-
-  if (diffInSeconds < 60) return "just now";
-  if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
-  if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
-  if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)}d ago`;
-  if (diffInSeconds < 2592000) return `${Math.floor(diffInSeconds / 604800)}w ago`;
-  return `${Math.floor(diffInSeconds / 2592000)}mo ago`;
 }
 
 // Status badge component with pill-shaped styling
@@ -103,6 +93,13 @@ function StatusBadge({ status }: { status: ProjectStatus }) {
       style: {
         backgroundColor: "#DBEAFE",
         color: "#1E40AF"
+      }
+    },
+    paused: {
+      label: "Paused",
+      style: {
+        backgroundColor: "#FEF3C7",
+        color: "#92400E"
       }
     },
     closed: {

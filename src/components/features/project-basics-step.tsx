@@ -18,9 +18,11 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { ArrowRight, Save, Loader2, Sparkles, Check, X, RotateCcw, Pencil, Info } from "lucide-react";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { ArrowRight, Save, Loader2, Sparkles, Check, X, RotateCcw, Pencil, Info, Mic, Video } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import type { StudyType, InterviewMode } from "@/lib/types/database";
 
 // Language options for the dropdown
 const LANGUAGES = [
@@ -47,6 +49,9 @@ export interface ProjectBasicsFormData {
   aboutAudience: string;
   objectiveContext: string;
   language: Language;
+  studyType: StudyType;
+  interviewMode: InterviewMode;
+  cameraRequired: boolean;
 }
 
 // Validation error interface
@@ -102,6 +107,9 @@ export const ProjectBasicsStep = forwardRef<ProjectBasicsStepRef, ProjectBasicsS
     aboutAudience: initialData?.aboutAudience || "",
     objectiveContext: initialData?.objectiveContext || "",
     language: initialData?.language || "English",
+    studyType: initialData?.studyType || "structured",
+    interviewMode: initialData?.interviewMode || "voice",
+    cameraRequired: initialData?.cameraRequired || false,
   });
 
   // Validation state
@@ -186,7 +194,10 @@ export const ProjectBasicsStep = forwardRef<ProjectBasicsStepRef, ProjectBasicsS
       formData.aboutInterviewer !== (initial?.aboutInterviewer || "") ||
       formData.aboutAudience !== (initial?.aboutAudience || "") ||
       formData.objectiveContext !== (initial?.objectiveContext || "") ||
-      formData.language !== (initial?.language || "English")
+      formData.language !== (initial?.language || "English") ||
+      formData.studyType !== (initial?.studyType || "structured") ||
+      formData.interviewMode !== (initial?.interviewMode || "voice") ||
+      formData.cameraRequired !== (initial?.cameraRequired || false)
     );
   }, [formData]);
 
@@ -339,7 +350,7 @@ export const ProjectBasicsStep = forwardRef<ProjectBasicsStepRef, ProjectBasicsS
             value={formData.projectName}
             onChange={(e) => updateField("projectName", e.target.value)}
             onBlur={() => handleBlur("projectName")}
-            placeholder="e.g., Q1 Brand Perception Study"
+            placeholder="Q1 Brand Perception Study"
             maxLength={100}
             className={cn(
               "border-border-default",
@@ -361,7 +372,8 @@ export const ProjectBasicsStep = forwardRef<ProjectBasicsStepRef, ProjectBasicsS
             value={formData.aboutInterviewer}
             onChange={(e) => updateField("aboutInterviewer", e.target.value)}
             onBlur={() => handleBlur("aboutInterviewer")}
-            placeholder="e.g., I'm the Head of Community at a fintech startup..."
+            placeholder="I'm the Head of Community at a fintech startup..."
+            autoExpand
             className={cn(
               "border-border-default",
               touched.aboutInterviewer && errors.aboutInterviewer && "border-danger-600 focus:ring-danger-600"
@@ -382,7 +394,8 @@ export const ProjectBasicsStep = forwardRef<ProjectBasicsStepRef, ProjectBasicsS
             value={formData.aboutAudience}
             onChange={(e) => updateField("aboutAudience", e.target.value)}
             onBlur={() => handleBlur("aboutAudience")}
-            placeholder="e.g., Early adopters of our mobile app, mostly 25-40 year olds..."
+            placeholder="Early adopters of our mobile app, mostly 25-40 year olds..."
+            autoExpand
             className={cn(
               "border-border-default",
               touched.aboutAudience && errors.aboutAudience && "border-danger-600 focus:ring-danger-600"
@@ -440,6 +453,7 @@ export const ProjectBasicsStep = forwardRef<ProjectBasicsStepRef, ProjectBasicsS
                   <Textarea
                     value={enhancedObjective}
                     onChange={(e) => setEnhancedObjective(e.target.value)}
+                    autoExpand
                     className="bg-warning-50 border-warning-200"
                   />
                 </div>
@@ -486,7 +500,8 @@ export const ProjectBasicsStep = forwardRef<ProjectBasicsStepRef, ProjectBasicsS
                 value={formData.objectiveContext}
                 onChange={(e) => updateField("objectiveContext", e.target.value)}
                 onBlur={() => handleBlur("objectiveContext")}
-                placeholder="e.g., We recently launched a new onboarding flow and want to understand how users felt about it..."
+                placeholder="We recently launched a new onboarding flow and want to understand how users felt about it..."
+                autoExpand
                 className={cn(
                   "border-border-default",
                   touched.objectiveContext && errors.objectiveContext && "border-danger-600 focus:ring-danger-600"
@@ -535,6 +550,141 @@ export const ProjectBasicsStep = forwardRef<ProjectBasicsStepRef, ProjectBasicsS
               ))}
             </SelectContent>
           </Select>
+        </div>
+
+        {/* Study Type */}
+        <div className="space-y-2">
+          <Label className="text-base font-medium">
+            Study Type <span className="text-danger-600">*</span>
+          </Label>
+          <RadioGroup
+            value={formData.studyType}
+            onValueChange={(value) => updateField("studyType", value as StudyType)}
+            className="space-y-3"
+          >
+            <div className="flex items-start gap-3">
+              <RadioGroupItem value="structured" id="study-type-structured" className="mt-0.5" />
+              <label htmlFor="study-type-structured" className="flex-1 cursor-pointer space-y-0.5">
+                <div className="font-medium text-text-primary text-sm">Structured Interview</div>
+                <p className="text-sm text-text-muted">
+                  AI follows your study flow step-by-step, asks specific questions, shows stimulus, uses all question types.
+                </p>
+              </label>
+            </div>
+            <div className="flex items-start gap-3">
+              <RadioGroupItem value="streaming" id="study-type-streaming" className="mt-0.5" />
+              <label htmlFor="study-type-streaming" className="flex-1 cursor-pointer space-y-0.5">
+                <div className="font-medium text-text-primary text-sm">Streaming Conversation</div>
+                <p className="text-sm text-text-muted">
+                  AI has a natural conversation covering your topics within time limits. More exploratory and conversational.
+                </p>
+              </label>
+            </div>
+          </RadioGroup>
+        </div>
+
+        {/* Interview Mode */}
+        <div className="space-y-2">
+          <div className="flex items-center gap-1.5">
+            <Label className="text-base font-medium">
+              Interview Mode <span className="text-danger-600">*</span>
+            </Label>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  className="inline-flex items-center justify-center w-4 h-4 rounded-full text-text-muted hover:text-text-default transition-colors"
+                  aria-label="Interview mode information"
+                >
+                  <Info className="w-4 h-4" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Choose whether participants will respond using voice only or with video recording.</p>
+              </TooltipContent>
+            </Tooltip>
+          </div>
+          <RadioGroup
+            value={formData.interviewMode}
+            onValueChange={(value) => {
+              updateField("interviewMode", value as InterviewMode);
+              // Reset camera required when switching to voice
+              if (value === "voice") {
+                updateField("cameraRequired", false);
+              }
+            }}
+            className="space-y-3"
+          >
+            <div className="flex items-start gap-3">
+              <RadioGroupItem value="voice" id="interview-mode-voice" className="mt-0.5" />
+              <div className="flex items-start gap-2 flex-1">
+                <Mic className="w-4 h-4 text-text-muted mt-0.5 flex-shrink-0" />
+                <label htmlFor="interview-mode-voice" className="flex-1 cursor-pointer space-y-0.5">
+                  <div className="font-medium text-text-primary text-sm">Voice Interview</div>
+                  <p className="text-sm text-text-muted">Audio recording with transcription</p>
+                </label>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <div className="flex items-start gap-3">
+                <RadioGroupItem value="video" id="interview-mode-video" className="mt-0.5" />
+                <div className="flex items-start gap-2 flex-1">
+                  <Video className="w-4 h-4 text-text-muted mt-0.5 flex-shrink-0" />
+                  <label htmlFor="interview-mode-video" className="flex-1 cursor-pointer space-y-0.5">
+                    <div className="font-medium text-text-primary text-sm">Video Interview</div>
+                    <p className="text-sm text-text-muted">Video recording with visual responses</p>
+                  </label>
+                </div>
+              </div>
+
+              {/* Camera Required Toggle - shown only when video is selected */}
+              {formData.interviewMode === "video" && (
+                <div className="pl-6 pt-2 flex items-center gap-2">
+                  <Label
+                    htmlFor="camera-required"
+                    className="text-sm text-text-primary cursor-pointer"
+                  >
+                    Require camera always on
+                  </Label>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        type="button"
+                        className="text-text-tertiary hover:text-text-secondary transition-colors"
+                      >
+                        <Info className="h-3 w-3" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="max-w-xs">
+                        {formData.cameraRequired
+                          ? "Participants must keep their camera on. Interview pauses if camera is turned off."
+                          : "Camera is optional. Participants can turn off camera during interview."}
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                  <button
+                    id="camera-required"
+                    type="button"
+                    role="switch"
+                    aria-checked={formData.cameraRequired}
+                    onClick={() => updateField("cameraRequired", !formData.cameraRequired)}
+                    className={cn(
+                      "relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-border focus-visible:ring-offset-2 flex-shrink-0",
+                      formData.cameraRequired ? "bg-primary-600" : "bg-input"
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        "inline-block h-5 w-5 transform rounded-full bg-white transition-transform shadow-sm",
+                        formData.cameraRequired ? "translate-x-6" : "translate-x-0.5"
+                      )}
+                    />
+                  </button>
+                </div>
+              )}
+            </div>
+          </RadioGroup>
         </div>
 
         {/* Navigation Buttons - Hidden in embedded mode */}

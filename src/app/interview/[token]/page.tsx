@@ -1,7 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { notFound, redirect } from "next/navigation";
-import { ParticipantInterview } from "@/components/features/participant-interview";
-import { Study, InterviewGuide, StudyFlowWithSections, Distribution } from "@/lib/types/database";
+import { InterviewProvider } from "@/components/features/interview/interview-context";
+import { InterviewShell } from "@/components/features/interview/interview-shell";
+import type { Study, StudyFlowWithSections, VoiceProfile, Distribution } from "@/lib/types/database";
 
 interface ParticipantInterviewPageProps {
   params: Promise<{ token: string }>;
@@ -27,7 +28,7 @@ export default async function ParticipantInterviewPage({ params }: ParticipantIn
   const { token } = await params;
   const supabase = await createClient();
 
-  let study = null;
+  let study: Study | null = null;
   let distribution: Distribution | null = null;
 
   // Check if this is a distribution link (10-char base64url format)
@@ -83,7 +84,7 @@ export default async function ParticipantInterviewPage({ params }: ParticipantIn
         }
 
         if (studyData.status === "live") {
-          study = studyData;
+          study = studyData as Study;
         }
       }
     }
@@ -98,28 +99,18 @@ export default async function ParticipantInterviewPage({ params }: ParticipantIn
       .single();
 
     if (interview) {
-      // Found an interview, get the associated study
       const { data: studyData } = await supabase
         .from("studies")
         .select("*")
         .eq("id", interview.study_id)
         .single();
 
-      study = studyData;
+      study = studyData as Study | null;
 
       // For test interviews, allow any status. For regular interviews, require "live" status
       if (!interview.is_test && study?.status !== "live") {
         notFound();
       }
-    } else {
-      // Fallback: Try to find study by token (using first 8 chars of study id)
-      // This is for backwards compatibility
-      const { data: studies } = await supabase
-        .from("studies")
-        .select("*")
-        .eq("status", "live");
-
-      study = studies?.find(s => s.id.slice(0, 8) === token);
     }
   }
 
@@ -127,67 +118,48 @@ export default async function ParticipantInterviewPage({ params }: ParticipantIn
     notFound();
   }
 
-  // Fetch study flow (new system) or interview guide (legacy)
-  const { data: studyFlow } = await supabase
+  // Fetch study flow with sections and items (native format, no lossy conversion)
+  const { data: studyFlowRaw } = await supabase
     .from("study_flows")
     .select("*, flow_sections(*, flow_items(*))")
     .eq("study_id", study.id)
     .maybeSingle();
 
-  // Convert study flow to interview guide format for compatibility
-  let guide: InterviewGuide | null = null;
-
-  if (studyFlow) {
-    const typedFlow = studyFlow as unknown as StudyFlowWithSections;
-    const sections = (typedFlow.sections || [])
-      .sort((a, b) => a.display_order - b.display_order)
-      .map((section) => {
-        const items = (section.items || [])
-          .sort((a, b) => a.display_order - b.display_order)
-          .filter(item => item.item_type !== 'instruction'); // Filter out instructions for interview guide
-
-        const questions = items.map((item) => ({
-          id: item.id,
-          text: item.question_text || "",
-          probes: [], // TODO: Extract probes from item_config if available
-        }));
-
-        return {
-          id: section.id,
-          title: section.title,
-          questions,
-        };
-      });
-
-    guide = {
-      id: typedFlow.id,
-      study_id: study.id,
-      sections,
-      approved_at: null,
-      approved_by: null,
-      created_at: typedFlow.created_at,
-      updated_at: typedFlow.updated_at,
-    };
-  } else {
-    // Fallback: Try legacy interview guide
-    const { data: legacyGuide } = await supabase
-      .from("interview_guides")
-      .select("*")
-      .eq("study_id", study.id)
-      .maybeSingle();
-
-    guide = legacyGuide as InterviewGuide;
-  }
-
-  if (!guide) {
+  if (!studyFlowRaw) {
     notFound();
   }
 
+  // Map the Supabase join naming to our TypeScript types
+  const studyFlow: StudyFlowWithSections = {
+    ...studyFlowRaw,
+    sections: (studyFlowRaw.flow_sections || []).map((section: Record<string, unknown>) => ({
+      ...section,
+      items: (section.flow_items as unknown[]) || [],
+      flow_items: undefined,
+    })),
+    flow_sections: undefined,
+  } as unknown as StudyFlowWithSections;
+
+  // Fetch voice profile if set
+  let voiceProfile: VoiceProfile | null = null;
+  if (study.voice_profile_id) {
+    const { data: vp } = await supabase
+      .from("voice_profiles")
+      .select("*")
+      .eq("id", study.voice_profile_id)
+      .single();
+    voiceProfile = vp as VoiceProfile | null;
+  }
+
   return (
-    <ParticipantInterview
-      study={study as Study}
-      guide={guide}
+    <InterviewProvider
+      study={study}
+      studyFlow={studyFlow}
+      voiceProfile={voiceProfile}
+      distribution={distribution}
       token={token}
-    />
+    >
+      <InterviewShell />
+    </InterviewProvider>
   );
 }

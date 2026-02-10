@@ -38,7 +38,7 @@ export function WelcomeScreenEditor({
       <div className="bg-surface rounded-xl border border-border-subtle p-6 space-y-4">
         <div className="pb-2 border-b border-border-subtle">
           <div className="flex items-center gap-2">
-            <h2 className="text-h3 text-text-primary">Welcome Screen <span className="text-danger-600">*</span></h2>
+            <h2 className="text-h3 text-text-primary">Participant Welcome Screen <span className="text-danger-600">*</span></h2>
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>

@@ -20,7 +20,7 @@ export type EnhanceObjectiveResponse = {
   tokens_used: number;
 };
 
-const SYSTEM_PROMPT = `You are helping a qualitative researcher craft a clear, comprehensive research objective for an AI-led interview study.
+const SYSTEM_PROMPT = `You are a senior qualitative researcher specializing in AI-led interviews. You help researchers transform rough inputs into clear, comprehensive research objectives that an AI interviewer can use as its north star.
 
 CONTEXT PROVIDED BY USER:
 - Who they are: {{about_interviewer}}
@@ -29,20 +29,35 @@ CONTEXT PROVIDED BY USER:
 - Interview language: {{language}}
 
 YOUR TASK:
-Transform their input into a well-structured research objective that:
-1. Clearly states the primary learning goal
-2. Identifies 2-4 key themes or topics to explore
-3. Notes any important context the AI interviewer should keep in mind
-4. Specifies the relationship dynamic to maintain appropriate tone
-5. Calls out any sensitivities or areas to approach carefully (if apparent)
+Transform their input into a polished research objective written in FIRST PERSON, as if the researcher wrote it themselves. Use "I want to understand...", "My goal is...", "I'm looking to explore...".
+
+The output must include:
+1. A core research objective statement (1 to 3 sentences) that:
+   - Opens with a precise action verb (e.g., "Understand," "Explore," "Identify," "Evaluate," "Examine," "Assess"). Avoid vague phrasing like "learn about" or "look into."
+   - Names the target audience
+   - States the core behavior or topic being investigated
+   - Lists 2 to 3 specific dimensions to explore (e.g., usage patterns, attitudes, barriers, motivations, unmet needs)
+   - References the intended insight or decision the findings will inform
+2. Key themes to explore: 2 to 4 distinct topic areas the AI interviewer should cover
+3. Context the AI interviewer should keep in mind, including relationship dynamic, tone, and why this research matters
+4. Sensitivities or areas to approach carefully (only if apparent from the input)
+
+SMART CRITERIA:
+Ensure the objective is Specific (one clear focus), Measurable (tied to observable outcomes), Achievable (scoped to what a 10 to 15 minute AI interview can uncover), Relevant (aligned to a real decision or need), and Time-bound (if the user implies a timeline).
+
+ADAPTIVE LENGTH:
+- SHORT INPUT (under roughly 30 words): The user has given a seed idea. Expand it into a rich, detailed objective of 150 to 300 words. Infer reasonable themes and dimensions based on who they are and who they are interviewing, but do not fabricate specifics they have not implied.
+- MEDIUM INPUT (roughly 30 to 150 words): Refine and enhance for clarity and structure. Aim for 150 to 300 words. Preserve their intent while adding depth and the structure above.
+- LONG INPUT (over roughly 150 words): The user has done significant thinking. Restructure and polish for clarity and flow. Use clear paragraph breaks. Open with the core objective, group related themes into cohesive paragraphs, and close with tone or sensitivity notes. Stay close to their original length.
 
 FORMAT:
-Write in second person ("You want to understand..."). Keep it concise but comprehensive—aim for 150-300 words. Use natural paragraphs, not bullet points. Professional but approachable tone.
+Write in natural paragraphs, not bullet points. Professional but approachable tone. For longer outputs, each paragraph should have a clear focus (core objective, themes, context, sensitivities). Scope the objective narrowly enough for a 10 to 15 minute AI-moderated interview covering 5 to 7 core topics.
 
 DO NOT:
-- Add questions (those come later in the flow)
+- Add interview questions (those come later in the flow)
 - Make assumptions about specifics not provided
-- Use overly academic or market-research jargon
+- Use overly academic or market-research jargon unless the audience is domain-expert
+- Use vague, non-leading language. Be precise and intentional
 - Include meta-commentary about your task
 
 Respond with ONLY the enhanced objective text.`;
@@ -54,8 +69,8 @@ export async function POST(request: NextRequest) {
 
     const { about_interviewer, about_audience, raw_objective, language } = validatedInput;
 
-    // Build the prompt with user context
-    const userPrompt = SYSTEM_PROMPT
+    // Build the system prompt with user context
+    const filledSystemPrompt = SYSTEM_PROMPT
       .replace("{{about_interviewer}}", about_interviewer)
       .replace("{{about_audience}}", about_audience)
       .replace("{{raw_objective}}", raw_objective)
@@ -64,14 +79,14 @@ export async function POST(request: NextRequest) {
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
-        { role: "system", content: userPrompt },
+        { role: "system", content: filledSystemPrompt },
         {
           role: "user",
-          content: `Please enhance my research objective based on the context I've provided. Here's my initial input:\n\nAbout me: ${about_interviewer}\n\nAbout my audience: ${about_audience}\n\nMy objective: ${raw_objective}\n\nLanguage: ${language}`,
+          content: "Please enhance my research objective based on the context provided.",
         },
       ],
       temperature: 0.7,
-      max_tokens: 600,
+      max_tokens: 800,
     });
 
     const content = completion.choices[0]?.message?.content;

@@ -23,11 +23,11 @@ const PAUSE_BEFORE_NEXT = 500; // ms between prompts
 export function BriefChatCompact() {
   const router = useRouter();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  
+
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
-  
+
   // Typewriter state
   const [currentPromptIndex, setCurrentPromptIndex] = useState(0);
   const [displayedText, setDisplayedText] = useState("");
@@ -78,22 +78,9 @@ export function BriefChatCompact() {
   }, [input, adjustTextareaHeight]);
 
   const handleSubmit = async (e?: React.FormEvent) => {
-    console.log('[DEBUG] handleSubmit called', { inputLength: input.length, inputTrimmed: input.trim().length, isLoading });
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/a4513daa-fb0a-4846-8a91-6329ec3b738e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'brief-chat-compact.tsx:80',message:'handleSubmit called',data:{inputLength:input.length,inputTrimmed:input.trim().length,isLoading},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-    // #endregion
     e?.preventDefault();
-    
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/a4513daa-fb0a-4846-8a91-6329ec3b738e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'brief-chat-compact.tsx:82',message:'Validation check',data:{inputTrimmed:input.trim(),isEmpty:!input.trim(),isLoading},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
-    // #endregion
-    if (!input.trim() || isLoading) {
-      console.log('[DEBUG] Validation failed - early return', { inputTrimmed: input.trim(), isEmpty: !input.trim(), isLoading });
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/a4513daa-fb0a-4846-8a91-6329ec3b738e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'brief-chat-compact.tsx:83',message:'Validation failed - early return',data:{inputTrimmed:input.trim(),isEmpty:!input.trim(),isLoading},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
-      // #endregion
-      return;
-    }
+
+    if (!input.trim() || isLoading) return;
 
     const userMessage: BriefMessage = {
       role: "user",
@@ -106,25 +93,13 @@ export function BriefChatCompact() {
     setInput("");
 
     try {
-      console.log('[DEBUG] Before Supabase insert', { promptText, title: generateStudyTitle(promptText) });
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/a4513daa-fb0a-4846-8a91-6329ec3b738e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'brief-chat-compact.tsx:96',message:'Before Supabase insert',data:{promptText,title:generateStudyTitle(promptText)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-      // #endregion
-      // Create a new study with the brief message
       const supabase = createClient();
-      
-      // Get the current authenticated user
+
       const { data: { user }, error: authError } = await supabase.auth.getUser();
       if (authError || !user) {
-        console.error('[DEBUG] Auth error - no user', { authError });
         throw new Error('Not authenticated');
       }
-      
-      console.log('[DEBUG] Got user ID', { userId: user.id });
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/a4513daa-fb0a-4846-8a91-6329ec3b738e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'brief-chat-compact.tsx:115',message:'Got user ID',data:{userId:user.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-      // #endregion
-      
+
       const { data: study, error } = await supabase
         .from("studies")
         .insert({
@@ -142,45 +117,19 @@ export function BriefChatCompact() {
         .select()
         .single();
 
-      console.log('[DEBUG] After Supabase insert', { hasError: !!error, errorMessage: error?.message, errorCode: error?.code, hasStudy: !!study, studyId: study?.id });
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/a4513daa-fb0a-4846-8a91-6329ec3b738e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'brief-chat-compact.tsx:113',message:'After Supabase insert',data:{hasError:!!error,errorMessage:error?.message,errorCode:error?.code,hasStudy:!!study,studyId:study?.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-      // #endregion
-
       if (!error && study) {
-        console.log('[DEBUG] Before router.push', { studyId: study.id, path: `/studies/${study.id}/flow` });
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/a4513daa-fb0a-4846-8a91-6329ec3b738e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'brief-chat-compact.tsx:115',message:'Before router.push',data:{studyId:study.id,path:`/studies/${study.id}/flow`},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-        // #endregion
-        // Navigate to study flow builder
         router.push(`/studies/${study.id}/flow`);
-        console.log('[DEBUG] After router.push', { studyId: study.id });
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/a4513daa-fb0a-4846-8a91-6329ec3b738e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'brief-chat-compact.tsx:116',message:'After router.push',data:{studyId:study.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-        // #endregion
       } else {
-        console.error('[DEBUG] Supabase error - not navigating', { errorMessage: error?.message, errorCode: error?.code, errorDetails: error });
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/a4513daa-fb0a-4846-8a91-6329ec3b738e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'brief-chat-compact.tsx:117',message:'Supabase error - not navigating',data:{errorMessage:error?.message,errorCode:error?.code,errorDetails:error},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-        // #endregion
         console.error("Error creating study:", error);
         setIsLoading(false);
       }
     } catch (error) {
-      console.error('[DEBUG] Catch block - exception thrown', { errorMessage: error instanceof Error ? error.message : String(error), errorStack: error instanceof Error ? error.stack : undefined });
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/a4513daa-fb0a-4846-8a91-6329ec3b738e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'brief-chat-compact.tsx:120',message:'Catch block - exception thrown',data:{errorMessage:error instanceof Error?error.message:String(error),errorStack:error instanceof Error?error.stack:undefined},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
-      // #endregion
       console.error("Error:", error);
       setIsLoading(false);
     }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    console.log('[DEBUG] handleKeyDown called', { key: e.key, shiftKey: e.shiftKey, willSubmit: e.key === 'Enter' && !e.shiftKey });
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/a4513daa-fb0a-4846-8a91-6329ec3b738e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'brief-chat-compact.tsx:126',message:'handleKeyDown called',data:{key:e.key,shiftKey:e.shiftKey,willSubmit:e.key==='Enter'&&!e.shiftKey},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-    // #endregion
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSubmit();
@@ -198,16 +147,16 @@ export function BriefChatCompact() {
 
       {/* Input Box */}
       <div className="relative">
-        <div 
+        <div
           className={`
             bg-surface border rounded-lg shadow-sm transition-all duration-200
-            ${isFocused 
-              ? "border-primary-400 ring-2 ring-primary-100" 
+            ${isFocused
+              ? "border-primary-400 ring-2 ring-primary-100"
               : "border-border-subtle hover:border-border-default"
             }
           `}
         >
-          <form onSubmit={(e)=>{console.log('[DEBUG] Form onSubmit event fired');fetch('http://127.0.0.1:7242/ingest/a4513daa-fb0a-4846-8a91-6329ec3b738e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'brief-chat-compact.tsx:153',message:'Form onSubmit event fired',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});handleSubmit(e);}} className="relative">
+          <form onSubmit={handleSubmit} className="relative">
             {/* Animated placeholder */}
             {showPlaceholder && (
               <div className="absolute inset-0 p-4 pointer-events-none">
@@ -228,7 +177,7 @@ export function BriefChatCompact() {
               onBlur={() => setIsFocused(false)}
               disabled={isLoading}
               className={`
-                w-full min-h-[120px] p-4 pr-24 
+                w-full min-h-[120px] p-4 pr-24
                 bg-transparent resize-none
                 text-text-primary text-body
                 placeholder-transparent
@@ -249,7 +198,7 @@ export function BriefChatCompact() {
                 {isLoading ? (
                   <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                 ) : (
-                  <ArrowUp 
+                  <ArrowUp
                     className={`w-5 h-5 transition-colors ${input.trim() ? "text-white" : "text-text-muted"}`}
                   />
                 )}

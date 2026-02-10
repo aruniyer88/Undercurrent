@@ -18,9 +18,11 @@ import {
   Bot,
 } from "lucide-react";
 import { ItemType, ITEM_TYPE_LABELS, ITEM_TYPE_DESCRIPTIONS } from "@/lib/types/study-flow";
+import type { StudyType } from "@/lib/types/database";
 
 interface AddItemMenuProps {
   onSelect: (type: ItemType) => void;
+  studyType?: StudyType;
 }
 
 const ITEM_ICONS: Record<ItemType, React.ElementType> = {
@@ -33,7 +35,7 @@ const ITEM_ICONS: Record<ItemType, React.ElementType> = {
   ai_conversation: Bot,
 };
 
-const QUESTION_TYPES: ItemType[] = [
+const ALL_QUESTION_TYPES: ItemType[] = [
   "open_ended",
   "single_select",
   "multi_select",
@@ -41,9 +43,13 @@ const QUESTION_TYPES: ItemType[] = [
   "ranking",
 ];
 
+// Streaming mode: only open-ended conversations
+const STREAMING_QUESTION_TYPES: ItemType[] = ["open_ended"];
+
 const OTHER_TYPES: ItemType[] = ["instruction", "ai_conversation"];
 
-export function AddItemMenu({ onSelect }: AddItemMenuProps) {
+export function AddItemMenu({ onSelect, studyType = "structured" }: AddItemMenuProps) {
+  const QUESTION_TYPES = studyType === "streaming" ? STREAMING_QUESTION_TYPES : ALL_QUESTION_TYPES;
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
