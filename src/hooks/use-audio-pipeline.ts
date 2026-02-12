@@ -36,7 +36,7 @@ export function useAudioPipeline(): AudioPipelineControls {
   // ============================
 
   const speak = useCallback(
-    async (text: string, voiceId: string, sessionId?: string): Promise<void> => {
+    async (text: string, voiceId: string, sessionId?: string, language?: string): Promise<void> => {
       // Abort any in-flight TTS fetch
       ttsAbortRef.current?.abort();
 
@@ -57,7 +57,7 @@ export function useAudioPipeline(): AudioPipelineControls {
         const response = await fetch('/api/elevenlabs/synthesize', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ text, voice_id: voiceId, session_id: sessionId }),
+          body: JSON.stringify({ text, voice_id: voiceId, session_id: sessionId, language }),
           signal: controller.signal,
         });
 
@@ -227,6 +227,25 @@ export function useAudioPipeline(): AudioPipelineControls {
     });
   }, []);
 
+  // ============================
+  // INTERRUPT + RECORD (combined)
+  // ============================
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const interruptAndRecord = useCallback(async (sessionId?: string): Promise<void> => {
+    // Stop any in-progress TTS
+    ttsAbortRef.current?.abort();
+    ttsAbortRef.current = null;
+    if (currentSourceRef.current) {
+      try { currentSourceRef.current.stop(); } catch { /* already stopped */ }
+      currentSourceRef.current = null;
+    }
+    setTtsAnalyser(null);
+
+    // Immediately start recording (no idle gap)
+    await startRecording();
+  }, [startRecording]);
+
   // Clean up on unmount
   useEffect(() => {
     return () => {
@@ -249,6 +268,7 @@ export function useAudioPipeline(): AudioPipelineControls {
     stopSpeaking,
     startRecording,
     stopRecording,
+    interruptAndRecord,
     ttsAnalyser,
     micAnalyser,
     error,

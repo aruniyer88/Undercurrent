@@ -64,24 +64,24 @@ export function AppSidebar({ user }: AppSidebarProps) {
       }}
     >
       {/* Logo */}
-      <div className="h-[60px] flex items-center px-4 border-b border-white/10">
+      <div className={cn(
+        "h-[60px] flex items-center border-b border-white/10",
+        isExpanded ? "px-4" : "justify-center"
+      )}>
         <Link href="/dashboard" className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-md bg-primary-600 flex items-center justify-center flex-shrink-0">
             <Waves className="w-5 h-5 text-white" />
           </div>
-          <span
-            className={cn(
-              "text-body-strong text-white whitespace-nowrap transition-opacity duration-200",
-              isExpanded ? "opacity-100" : "opacity-0"
-            )}
-          >
-            Undercurrent
-          </span>
+          {isExpanded && (
+            <span className="text-body-strong text-white whitespace-nowrap">
+              Undercurrent
+            </span>
+          )}
         </Link>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 py-4 px-2">
+      <nav className={cn("flex-1 py-4", isExpanded ? "px-2" : "px-0")}>
         <ul className="space-y-1">
           {navItems.map((item) => {
             const isActive =
@@ -94,22 +94,20 @@ export function AppSidebar({ user }: AppSidebarProps) {
                 <Link
                   href={item.href}
                   className={cn(
-                    "flex items-center gap-3 px-3 py-2.5 rounded-md transition-all duration-150",
+                    "flex items-center py-2.5 rounded-md transition-all duration-150",
                     "focus:outline-none focus:ring-2 focus:ring-primary-border focus:ring-offset-1 focus:ring-offset-topbar-bg",
+                    isExpanded ? "gap-3 px-3" : "justify-center",
                     isActive
                       ? "bg-primary-600 text-white"
                       : "text-topbar-text hover:bg-white/10"
                   )}
                 >
                   <item.icon className="w-5 h-5 flex-shrink-0" />
-                  <span
-                    className={cn(
-                      "text-body whitespace-nowrap transition-opacity duration-200",
-                      isExpanded ? "opacity-100" : "opacity-0"
-                    )}
-                  >
-                    {item.label}
-                  </span>
+                  {isExpanded && (
+                    <span className="text-body whitespace-nowrap">
+                      {item.label}
+                    </span>
+                  )}
                 </Link>
               </li>
             );
@@ -118,14 +116,14 @@ export function AppSidebar({ user }: AppSidebarProps) {
       </nav>
 
       {/* User Account */}
-      <div className="px-2 py-3 border-t border-white/10">
+      <div className={cn("py-3 border-t border-white/10", isExpanded ? "px-2" : "px-0")}>
         <DropdownMenu onOpenChange={setIsDropdownOpen}>
           <DropdownMenuTrigger asChild>
             <button
               className={cn(
-                "w-full flex items-center gap-3 px-2 py-2 rounded-md transition-colors",
+                "w-full flex items-center py-2 rounded-md transition-colors",
                 "hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-primary-border focus:ring-offset-1 focus:ring-offset-topbar-bg",
-                !isExpanded && "justify-center"
+                isExpanded ? "gap-3 px-2" : "justify-center"
               )}
             >
               <Avatar className="h-8 w-8 flex-shrink-0">
@@ -133,16 +131,13 @@ export function AppSidebar({ user }: AppSidebarProps) {
                   {initials}
                 </AvatarFallback>
               </Avatar>
-              <div
-                className={cn(
-                  "flex flex-col items-start overflow-hidden transition-opacity duration-200",
-                  isExpanded ? "opacity-100" : "opacity-0"
-                )}
-              >
-                <span className="text-caption text-topbar-text truncate max-w-[130px]">
-                  {user.email}
-                </span>
-              </div>
+              {isExpanded && (
+                <div className="flex flex-col items-start overflow-hidden">
+                  <span className="text-caption text-topbar-text truncate max-w-[130px]">
+                    {user.email}
+                  </span>
+                </div>
+              )}
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent className="w-56" align="start" side="right" sideOffset={8}>

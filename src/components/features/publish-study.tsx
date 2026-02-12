@@ -148,10 +148,10 @@ export function PublishStudy({ study, baseUrl }: PublishStudyProps) {
                     <p className="text-sm text-neutral-600 mt-1">{study.objective}</p>
                   </div>
                 )}
-                {study.audience && (
+                {study.context && (
                   <div>
-                    <p className="text-sm font-medium text-neutral-700">Target Audience</p>
-                    <p className="text-sm text-neutral-600 mt-1">{study.audience}</p>
+                    <p className="text-sm font-medium text-neutral-700">Research Context</p>
+                    <p className="text-sm text-neutral-600 mt-1">{study.context}</p>
                   </div>
                 )}
               </CardContent>

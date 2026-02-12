@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
     // Fetch study data
     const { data: study, error: studyError } = await supabase
       .from("studies")
-      .select("id, user_id, title, objective, audience, about_interviewer, language, study_type")
+      .select("id, user_id, title, objective, context, language, study_type")
       .eq("id", study_id)
       .single();
 
@@ -98,14 +98,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Build the user prompt with study context
-    const userPrompt = `RESEARCHER CONTEXT:
-${study.about_interviewer || "Not provided"}
-
-STUDY OBJECTIVE:
+    const userPrompt = `STUDY OBJECTIVE:
 ${study.objective || "Not provided"}
 
-TARGET AUDIENCE:
-${study.audience || "Not provided"}
+RESEARCH CONTEXT:
+${study.context || "Not provided"}
 
 INTERVIEW LANGUAGE: ${study.language || "English"}
 STUDY TYPE: ${study.study_type} (${study.study_type === "structured" ? "step-by-step questions" : "natural conversation"})

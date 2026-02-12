@@ -29,6 +29,7 @@ import {
   Volume2,
   Plus,
   X,
+  Trash2,
 } from "lucide-react";
 import {
   Tooltip,
@@ -39,7 +40,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { VoiceRecorder } from "./voice-recorder";
-import { RecordingLanguage, PresetVoice } from "@/lib/elevenlabs/types";
+import { RecordingLanguage, PresetVoice, ISO_TO_LANGUAGE_DISPLAY } from "@/lib/elevenlabs/types";
 
 // Ref interface for wizard integration
 export interface VoiceSetupRef {
@@ -103,6 +104,10 @@ export const VoiceSetup = forwardRef<VoiceSetupRef, VoiceSetupProps>(
     keyPhrases: [],
   }), []);
 
+  // Delete confirmation state
+  const [deletingVoiceId, setDeletingVoiceId] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
   // Clone form state
   const [cloneForm, setCloneForm] = useState({
     name: "",
@@ -113,47 +118,12 @@ export const VoiceSetup = forwardRef<VoiceSetupRef, VoiceSetupProps>(
   // Gender filter state
   const [genderFilter, setGenderFilter] = useState<"all" | "male" | "female">("all");
 
-  // Language to accent/region mapping for voice filtering
-  const languageToAccentMap: Record<string, string[]> = {
-    "Hindi": ["indian", "hindi"],
-    "Mandarin Chinese": ["chinese", "mandarin"],
-    "Japanese": ["japanese"],
-    "Korean": ["korean"],
-    "Spanish": ["spanish", "latin"],
-    "French": ["french"],
-    "German": ["german"],
-    "Italian": ["italian"],
-    "Portuguese": ["portuguese", "brazilian"],
-    "Arabic": ["arabic", "middle eastern"],
-    "Dutch": ["dutch"],
-  };
-
-  // Filter preset voices based on language and gender
+  // Filter preset voices by gender only (language filtering now happens server-side)
   const filteredPresetVoices = presetVoices.filter((voice) => {
-    // Gender filter
     if (genderFilter !== "all") {
       const voiceGender = voice.labels?.gender?.toLowerCase();
-      if (voiceGender !== genderFilter) {
-        return false;
-      }
+      if (voiceGender !== genderFilter) return false;
     }
-
-    // Language/accent filter - only apply if language is set and not English
-    if (study.language && study.language !== "English") {
-      const acceptableAccents = languageToAccentMap[study.language];
-      if (acceptableAccents) {
-        const voiceAccent = voice.labels?.accent?.toLowerCase() || "";
-        const voiceName = voice.name.toLowerCase();
-        // Check if voice matches the accent or has a matching name pattern
-        const matchesAccent = acceptableAccents.some(
-          (accent) => voiceAccent.includes(accent) || voiceName.includes(accent)
-        );
-        // For non-English languages, prefer matching accents but don't exclude all
-        // Just prioritize matching voices (this filter is soft)
-        return matchesAccent || !acceptableAccents.length;
-      }
-    }
-
     return true;
   });
 
@@ -330,6 +300,64 @@ export const VoiceSetup = forwardRef<VoiceSetupRef, VoiceSetupProps>(
     [playingVoice, clonedPreviewUrls, toast]
   );
 
+  const handleDeleteClonedVoice = async () => {
+    if (!deletingVoiceId) return;
+
+    setIsDeleting(true);
+    try {
+      const response = await fetch("/api/elevenlabs/clone", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ voice_profile_id: deletingVoiceId }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to delete voice");
+      }
+
+      // Stop audio if playing this voice
+      const audio = audioRefs.current.get(deletingVoiceId);
+      if (audio) {
+        audio.pause();
+        audioRefs.current.delete(deletingVoiceId);
+      }
+      if (playingVoice === deletingVoiceId) {
+        setPlayingVoice(null);
+      }
+
+      // Clear cached preview
+      setClonedPreviewUrls((prev) => {
+        const next = new Map(prev);
+        next.delete(deletingVoiceId);
+        return next;
+      });
+
+      // Remove from local state
+      setCustomVoices((prev) => prev.filter((v) => v.id !== deletingVoiceId));
+
+      // Deselect if this was the selected voice
+      if (selectedVoice === deletingVoiceId) {
+        setSelectedVoice(null);
+      }
+
+      toast({
+        title: "Voice deleted",
+        description: "The cloned voice has been removed.",
+      });
+    } catch (error) {
+      toast({
+        title: "Failed to delete voice",
+        description:
+          error instanceof Error ? error.message : "Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
+      setDeletingVoiceId(null);
+    }
+  };
+
   const handleSave = async () => {
     if (!selectedVoice) {
       toast({
@@ -366,6 +394,24 @@ export const VoiceSetup = forwardRef<VoiceSetupRef, VoiceSetupProps>(
         const presetVoice = presetVoices.find(v => v.id === selectedVoice);
         if (!presetVoice) {
           throw new Error("Selected voice not found");
+        }
+
+        // Add shared voice to our ElevenLabs account (ensures TTS works)
+        if (presetVoice.public_owner_id) {
+          try {
+            await fetch('/api/elevenlabs/add-voice', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                public_owner_id: presetVoice.public_owner_id,
+                voice_id: presetVoice.provider_voice_id,
+                name: presetVoice.name,
+              }),
+            });
+          } catch {
+            // Non-fatal — TTS may still work without explicit add
+            console.warn('Could not add shared voice to account, continuing...');
+          }
         }
 
         // Check if a voice profile already exists for this preset voice
@@ -495,6 +541,23 @@ export const VoiceSetup = forwardRef<VoiceSetupRef, VoiceSetupProps>(
         const presetVoice = presetVoices.find(v => v.id === selectedVoice);
         if (!presetVoice) {
           throw new Error("Selected voice not found");
+        }
+
+        // Add shared voice to our ElevenLabs account (ensures TTS works)
+        if (presetVoice.public_owner_id) {
+          try {
+            await fetch('/api/elevenlabs/add-voice', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                public_owner_id: presetVoice.public_owner_id,
+                voice_id: presetVoice.provider_voice_id,
+                name: presetVoice.name,
+              }),
+            });
+          } catch {
+            console.warn('Could not add shared voice to account, continuing...');
+          }
         }
 
         // Check if a voice profile already exists for this preset voice
@@ -909,7 +972,8 @@ export const VoiceSetup = forwardRef<VoiceSetupRef, VoiceSetupProps>(
                               {/* Language indicator */}
                               <div className="flex items-center gap-1 mt-1">
                                 <span className="text-[10px] text-neutral-400">
-                                  🇺🇸 English
+                                  {ISO_TO_LANGUAGE_DISPLAY[voice.language || ""]?.flag || "\u{1F310}"}{" "}
+                                  {ISO_TO_LANGUAGE_DISPLAY[voice.language || ""]?.label || voice.language || "English"}
                                 </span>
                               </div>
                             </div>
@@ -966,11 +1030,21 @@ export const VoiceSetup = forwardRef<VoiceSetupRef, VoiceSetupProps>(
                         )}
                         onClick={() => setSelectedVoice(voice.id)}
                       >
-                        {selectedVoice === voice.id && (
-                          <div className="absolute top-2 right-2">
+                        <div className="absolute top-2 right-2 flex items-center gap-1">
+                          {selectedVoice === voice.id && (
                             <CheckCircle2 className="w-4 h-4 text-primary-600" />
-                          </div>
-                        )}
+                          )}
+                          <button
+                            className="p-1 rounded-md text-neutral-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setDeletingVoiceId(voice.id);
+                            }}
+                            title="Delete voice clone"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
 
                         <div className="flex items-center gap-3">
                           {/* Abstract avatar with play overlay */}
@@ -1071,6 +1145,43 @@ export const VoiceSetup = forwardRef<VoiceSetupRef, VoiceSetupProps>(
         </Tabs>
 
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={!!deletingVoiceId} onOpenChange={() => setDeletingVoiceId(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Delete voice clone?</DialogTitle>
+            <DialogDescription>
+              This will permanently remove the cloned voice from your account. Any studies using this voice will need a new voice assigned.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex gap-3 pt-2">
+            <Button
+              variant="outline"
+              className="flex-1"
+              onClick={() => setDeletingVoiceId(null)}
+              disabled={isDeleting}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              className="flex-1"
+              onClick={handleDeleteClonedVoice}
+              disabled={isDeleting}
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                "Delete"
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Clone Dialog */}
       <Dialog open={showCloneDialog} onOpenChange={handleCloseDialog}>

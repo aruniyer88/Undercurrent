@@ -65,15 +65,13 @@ export interface Study {
   status: StudyStatus;
   project_type: ProjectType | null;
   objective: string | null;
+  context: string | null;
   topics: string[] | null;
   success_criteria: string | null;
-  audience: string | null;
   guidelines: string | null;
   intro_text: string | null;
   brief_messages: BriefMessage[];
   voice_profile_id: string | null;
-  // Step 1 Project Basics fields
-  about_interviewer: string | null;
   language: string | null;
   // Interview mode settings (applies to entire study)
   interview_mode: InterviewMode;

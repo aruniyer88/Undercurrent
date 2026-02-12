@@ -13,7 +13,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Sparkles, Mic, Keyboard, Check } from "lucide-react";
+import { Sparkles, Ban, Mic, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   OpenEndedItem,
@@ -34,7 +34,6 @@ export function OpenEndedEditor({
   onUpdate,
 }: OpenEndedEditorProps) {
   const [probingOpen, setProbingOpen] = useState(false);
-  const [responseModeOpen, setResponseModeOpen] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Auto-resize textarea
@@ -46,7 +45,7 @@ export function OpenEndedEditor({
     }
   }, [item.questionText]);
 
-  const ResponseModeIcon = item.responseMode === "voice" ? Mic : Keyboard;
+  const ProbingIcon = item.probingMode === "disabled" ? Ban : Sparkles;
 
   return (
     <div className="space-y-4">
@@ -76,9 +75,14 @@ export function OpenEndedEditor({
                     <PopoverTrigger asChild>
                       <button
                         type="button"
-                        className="text-text-muted hover:text-primary-600 transition-colors"
+                        className={cn(
+                          "transition-colors",
+                          item.probingMode === "disabled"
+                            ? "text-text-muted hover:text-text-secondary"
+                            : "text-text-muted hover:text-primary-600"
+                        )}
                       >
-                        <Sparkles className="w-5 h-5" />
+                        <ProbingIcon className="w-5 h-5" />
                       </button>
                     </PopoverTrigger>
                   </TooltipTrigger>
@@ -127,68 +131,17 @@ export function OpenEndedEditor({
               </Tooltip>
             </TooltipProvider>
 
-            {/* Response Mode Icon */}
+            {/* Voice Response Indicator */}
             <TooltipProvider>
               <Tooltip>
-                <Popover open={responseModeOpen} onOpenChange={setResponseModeOpen}>
-                  <TooltipTrigger asChild>
-                    <PopoverTrigger asChild>
-                      <button
-                        type="button"
-                        className="text-text-muted hover:text-primary-600 transition-colors"
-                      >
-                        <ResponseModeIcon className="w-5 h-5" />
-                      </button>
-                    </PopoverTrigger>
-                  </TooltipTrigger>
-                  <TooltipContent side="top">
-                    <p className="text-xs">
-                      Response Mode - How participants will answer
-                    </p>
-                  </TooltipContent>
-                  <PopoverContent align="end" className="w-64 p-2">
-                    <div className="space-y-1">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          onUpdate({ responseMode: "voice" });
-                          setResponseModeOpen(false);
-                        }}
-                        className={cn(
-                          "w-full flex items-center justify-between px-3 py-2 rounded-md text-sm hover:bg-surface-alt transition-colors",
-                          item.responseMode === "voice" && "bg-surface-alt"
-                        )}
-                      >
-                        <div className="flex items-center gap-2">
-                          <Mic className="w-4 h-4" />
-                          <span>Voice - Speak response</span>
-                        </div>
-                        {item.responseMode === "voice" && (
-                          <Check className="w-4 h-4 text-primary-600" />
-                        )}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          onUpdate({ responseMode: "text" });
-                          setResponseModeOpen(false);
-                        }}
-                        className={cn(
-                          "w-full flex items-center justify-between px-3 py-2 rounded-md text-sm hover:bg-surface-alt transition-colors",
-                          item.responseMode === "text" && "bg-surface-alt"
-                        )}
-                      >
-                        <div className="flex items-center gap-2">
-                          <Keyboard className="w-4 h-4" />
-                          <span>Text - Type response</span>
-                        </div>
-                        {item.responseMode === "text" && (
-                          <Check className="w-4 h-4 text-primary-600" />
-                        )}
-                      </button>
-                    </div>
-                  </PopoverContent>
-                </Popover>
+                <TooltipTrigger asChild>
+                  <span className="text-text-muted">
+                    <Mic className="w-5 h-5" />
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent side="top">
+                  <p className="text-xs">Voice response only</p>
+                </TooltipContent>
               </Tooltip>
             </TooltipProvider>
           </div>

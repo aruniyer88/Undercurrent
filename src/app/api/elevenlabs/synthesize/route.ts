@@ -23,8 +23,16 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const body = await request.json();
-    const { text, voice_id, session_id } = body;
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json(
+        { error: 'Invalid or empty request body' },
+        { status: 400 }
+      );
+    }
+    const { text, voice_id, session_id, language } = body;
 
     // Require a valid interview session
     if (!(await validateInterviewSession(session_id))) {
@@ -45,7 +53,10 @@ export async function POST(request: NextRequest) {
     // but ElevenLabs expects the raw voice ID
     const elevenLabsVoiceId = voice_id.replace(/^preset-/, '');
 
-    // Call ElevenLabs TTS with turbo model for low latency
+    // Use turbo model for English (low latency), multilingual for other languages
+    const isEnglish = !language || language === "en" || language === "English";
+    const modelId = isEnglish ? 'eleven_turbo_v2' : 'eleven_multilingual_v2';
+
     const response = await fetch(
       `https://api.elevenlabs.io/v1/text-to-speech/${elevenLabsVoiceId}`,
       {
@@ -57,7 +68,7 @@ export async function POST(request: NextRequest) {
         },
         body: JSON.stringify({
           text,
-          model_id: 'eleven_turbo_v2',
+          model_id: modelId,
           voice_settings: {
             stability: 0.5,
             similarity_boost: 0.75,

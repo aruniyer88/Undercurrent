@@ -61,10 +61,12 @@ export default function StudyBasicsPage({ params }: StudyBasicsPageProps) {
         .from("studies")
         .update({
           title: data.projectName,
-          objective: data.objectiveContext,
-          audience: data.aboutAudience,
-          about_interviewer: data.aboutInterviewer,
+          objective: data.objective,
+          context: data.context,
           language: data.language,
+          study_type: data.studyType,
+          interview_mode: data.interviewMode,
+          camera_required: data.cameraRequired,
         })
         .eq("id", studyId);
 
@@ -100,10 +102,12 @@ export default function StudyBasicsPage({ params }: StudyBasicsPageProps) {
         .from("studies")
         .update({
           title: data.projectName || "Untitled Study",
-          objective: data.objectiveContext || null,
-          audience: data.aboutAudience || null,
-          about_interviewer: data.aboutInterviewer || null,
+          objective: data.objective || null,
+          context: data.context || null,
           language: data.language || "English",
+          study_type: data.studyType,
+          interview_mode: data.interviewMode,
+          camera_required: data.cameraRequired,
         })
         .eq("id", studyId);
 
@@ -143,10 +147,12 @@ export default function StudyBasicsPage({ params }: StudyBasicsPageProps) {
   // Map study data to form data
   const initialData: Partial<ProjectBasicsFormData> = {
     projectName: study.title || "",
-    aboutInterviewer: study.about_interviewer || "",
-    aboutAudience: study.audience || "",
-    objectiveContext: study.objective || "",
+    objective: study.objective || "",
+    context: study.context || "",
     language: (study.language as ProjectBasicsFormData["language"]) || "English",
+    studyType: study.study_type || "structured",
+    interviewMode: study.interview_mode || "voice",
+    cameraRequired: study.camera_required || false,
   };
 
   return (

@@ -56,6 +56,7 @@ export function WizardProvider({
     }
     return new Set<number>();
   });
+  const [maxStepReached, setMaxStepReached] = useState(initialStep);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [canProceed, setCanProceed] = useState(false);
@@ -119,9 +120,8 @@ export function WizardProvider({
         // Step 1: Project Info - Check for required fields
         const hasProjectInfo = !!(
           study.title &&
-          study.about_interviewer &&
-          study.audience &&
-          study.objective
+          study.objective &&
+          study.context
         );
 
         if (hasProjectInfo) {
@@ -131,6 +131,7 @@ export function WizardProvider({
           firstIncompleteStep = 1;
           setCompletedSteps(completed);
           setCurrentStep(firstIncompleteStep);
+          setMaxStepReached(Math.max(firstIncompleteStep, initialStep));
           setHasCheckedCompletion(true);
           setIsLoading(false);
           return;
@@ -149,6 +150,7 @@ export function WizardProvider({
           firstIncompleteStep = 2;
           setCompletedSteps(completed);
           setCurrentStep(firstIncompleteStep);
+          setMaxStepReached(Math.max(firstIncompleteStep, initialStep));
           setHasCheckedCompletion(true);
           setIsLoading(false);
           return;
@@ -164,6 +166,7 @@ export function WizardProvider({
           firstIncompleteStep = 3;
           setCompletedSteps(completed);
           setCurrentStep(firstIncompleteStep);
+          setMaxStepReached(Math.max(firstIncompleteStep, initialStep));
           setHasCheckedCompletion(true);
           setIsLoading(false);
           return;
@@ -179,6 +182,7 @@ export function WizardProvider({
           firstIncompleteStep = 4;
           setCompletedSteps(completed);
           setCurrentStep(firstIncompleteStep);
+          setMaxStepReached(Math.max(firstIncompleteStep, initialStep));
           setHasCheckedCompletion(true);
           setIsLoading(false);
           return;
@@ -206,6 +210,7 @@ export function WizardProvider({
         // Update state with all completed steps
         setCompletedSteps(completed);
         setCurrentStep(firstIncompleteStep);
+        setMaxStepReached(Math.max(firstIncompleteStep, initialStep));
         setHasCheckedCompletion(true);
 
         // Apply initialSection if provided (e.g., navigating from dashboard to responses/analysis)
@@ -221,6 +226,7 @@ export function WizardProvider({
         console.error("Error checking step completion:", error);
         // On error, default to step 1
         setCurrentStep(1);
+        setMaxStepReached(Math.max(1, initialStep));
         setCompletedSteps(new Set());
         setHasCheckedCompletion(true);
       } finally {
@@ -237,11 +243,10 @@ export function WizardProvider({
       ...step,
       isComplete: completedSteps.has(step.id),
       isAccessible:
-        completedSteps.has(step.id) || // Can access completed steps
-        step.id === currentStep || // Can access current step
+        step.id <= maxStepReached || // Can access any step up to the furthest reached
         (step.id === currentStep + 1 && canProceed), // Can access next if current is valid
     }));
-  }, [completedSteps, currentStep, canProceed]);
+  }, [completedSteps, currentStep, canProceed, maxStepReached]);
 
   const markStepComplete = useCallback((step: number) => {
     setCompletedSteps((prev) => new Set([...Array.from(prev), step]));
@@ -257,20 +262,22 @@ export function WizardProvider({
 
   const goToStep = useCallback(
     (step: number) => {
-      // Can only go to completed steps or current step
-      if (completedSteps.has(step) || step === currentStep) {
+      // Can navigate to any step up to the furthest reached
+      if (step <= maxStepReached) {
         setCurrentStep(step);
         setCanProceed(false); // Reset validation when changing steps
       }
     },
-    [completedSteps, currentStep]
+    [maxStepReached]
   );
 
   const nextStep = useCallback(async (): Promise<boolean> => {
     if (currentStep < totalSteps) {
       // Mark current step as complete
       markStepComplete(currentStep);
-      setCurrentStep((prev) => prev + 1);
+      const nextStepNumber = currentStep + 1;
+      setCurrentStep(nextStepNumber);
+      setMaxStepReached((prev) => Math.max(prev, nextStepNumber));
       setCanProceed(false); // Reset validation for next step
       return true;
     }

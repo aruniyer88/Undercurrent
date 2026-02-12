@@ -24,8 +24,8 @@ interface WizardContentProps {
 
 const STEP_TITLES: Record<number, { title: string; description: string }> = {
   1: {
-    title: "Project Basics",
-    description: "Tell us about your research project",
+    title: "Tell Us About Your Project",
+    description: "",
   },
   2: {
     title: "Study Flow",
@@ -139,7 +139,7 @@ export function WizardContent({ onUnsavedChanges }: WizardContentProps) {
     } catch (err) {
       console.error("Error checking persona staleness:", err);
     }
-  }, [studyId]);
+  }, [studyId, toast]);
 
   // Handle Next button
   const handleNext = useCallback(async () => {

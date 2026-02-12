@@ -18,8 +18,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { ArrowRight, Save, Loader2, Sparkles, Check, X, RotateCcw, Pencil, Info, Mic, Video } from "lucide-react";
+import { ArrowRight, Save, Loader2, Check, X, RotateCcw, Pencil, Info, Mic, Video, ClipboardList, MessageCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import type { StudyType, InterviewMode } from "@/lib/types/database";
@@ -27,17 +26,9 @@ import type { StudyType, InterviewMode } from "@/lib/types/database";
 // Language options for the dropdown
 const LANGUAGES = [
   "English",
+  "Hindi",
   "Spanish",
   "French",
-  "German",
-  "Portuguese",
-  "Italian",
-  "Dutch",
-  "Japanese",
-  "Korean",
-  "Mandarin Chinese",
-  "Hindi",
-  "Arabic",
 ] as const;
 
 type Language = (typeof LANGUAGES)[number];
@@ -45,9 +36,8 @@ type Language = (typeof LANGUAGES)[number];
 // Form data interface
 export interface ProjectBasicsFormData {
   projectName: string;
-  aboutInterviewer: string;
-  aboutAudience: string;
-  objectiveContext: string;
+  objective: string;
+  context: string;
   language: Language;
   studyType: StudyType;
   interviewMode: InterviewMode;
@@ -57,13 +47,17 @@ export interface ProjectBasicsFormData {
 // Validation error interface
 interface ValidationErrors {
   projectName?: string;
-  aboutInterviewer?: string;
-  aboutAudience?: string;
-  objectiveContext?: string;
+  objective?: string;
+  context?: string;
 }
 
-// AI enhancement state
-type AIEnhanceState = "idle" | "loading" | "preview";
+// Per-field AI enhancement
+type AIFieldTarget = "objective" | "context";
+
+interface AIFieldState {
+  state: "idle" | "loading" | "preview";
+  enhancedText: string;
+}
 
 // Ref interface for wizard integration
 export interface ProjectBasicsStepRef {
@@ -82,6 +76,58 @@ interface ProjectBasicsStepProps {
   embedded?: boolean;
   onValidationChange?: (isValid: boolean) => void;
   onSave?: (data: ProjectBasicsFormData) => Promise<boolean>;
+}
+
+// Selection card component
+function SelectionCard({
+  selected,
+  onClick,
+  icon,
+  title,
+  description,
+  bestFor,
+  id,
+}: {
+  selected: boolean;
+  onClick: () => void;
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+  bestFor: string;
+  id: string;
+}) {
+  return (
+    <button
+      type="button"
+      id={id}
+      role="radio"
+      aria-checked={selected}
+      onClick={onClick}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onClick();
+        }
+      }}
+      className={cn(
+        "flex flex-col items-start gap-2 rounded-lg border-2 p-4 text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-border focus-visible:ring-offset-2",
+        selected
+          ? "border-primary-600 bg-primary-50"
+          : "border-border-default bg-white hover:border-gray-300 hover:bg-gray-50"
+      )}
+    >
+      <div className="flex items-center gap-2">
+        <span className={cn("flex-shrink-0", selected ? "text-primary-600" : "text-text-muted")}>
+          {icon}
+        </span>
+        <span className={cn("font-medium text-sm", selected ? "text-primary-700" : "text-text-primary")}>
+          {title}
+        </span>
+      </div>
+      <p className="text-sm text-text-muted leading-relaxed">{description}</p>
+      <p className="text-xs text-text-tertiary italic">{bestFor}</p>
+    </button>
+  );
 }
 
 export const ProjectBasicsStep = forwardRef<ProjectBasicsStepRef, ProjectBasicsStepProps>(
@@ -103,9 +149,8 @@ export const ProjectBasicsStep = forwardRef<ProjectBasicsStepRef, ProjectBasicsS
   // Form state
   const [formData, setFormData] = useState<ProjectBasicsFormData>({
     projectName: initialData?.projectName || "",
-    aboutInterviewer: initialData?.aboutInterviewer || "",
-    aboutAudience: initialData?.aboutAudience || "",
-    objectiveContext: initialData?.objectiveContext || "",
+    objective: initialData?.objective || "",
+    context: initialData?.context || "",
     language: initialData?.language || "English",
     studyType: initialData?.studyType || "structured",
     interviewMode: initialData?.interviewMode || "voice",
@@ -116,11 +161,11 @@ export const ProjectBasicsStep = forwardRef<ProjectBasicsStepRef, ProjectBasicsS
   const [errors, setErrors] = useState<ValidationErrors>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
 
-  // AI enhancement state
-  const [aiState, setAIState] = useState<AIEnhanceState>("idle");
-  const [enhancedObjective, setEnhancedObjective] = useState<string>("");
-  // Note: originalObjective is stored for potential undo functionality
-  const [, setOriginalObjective] = useState<string>("");
+  // Per-field AI enhancement state
+  const [aiFields, setAIFields] = useState<Record<AIFieldTarget, AIFieldState>>({
+    objective: { state: "idle", enhancedText: "" },
+    context: { state: "idle", enhancedText: "" },
+  });
 
   // Update a single field
   const updateField = useCallback(
@@ -150,39 +195,29 @@ export const ProjectBasicsStep = forwardRef<ProjectBasicsStepRef, ProjectBasicsS
       newErrors.projectName = "Please enter a project name";
     }
 
-    if (!formData.aboutInterviewer || formData.aboutInterviewer.length < 20) {
-      newErrors.aboutInterviewer = "Please tell us a bit more about yourself";
+    if (!formData.objective || formData.objective.length < 30) {
+      newErrors.objective = "Please provide more detail about your research objective (min 30 characters)";
     }
 
-    if (!formData.aboutAudience || formData.aboutAudience.length < 20) {
-      newErrors.aboutAudience = "Please describe your audience in more detail";
-    }
-
-    if (!formData.objectiveContext || formData.objectiveContext.length < 50) {
-      newErrors.objectiveContext =
-        "Please provide more detail about your research objective";
+    if (!formData.context || formData.context.length < 20) {
+      newErrors.context = "Please provide more background context (min 20 characters)";
     }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   }, [formData]);
 
-  // Check if AI enhancement is enabled
-  const isAIEnabled = useMemo(() => {
-    return (
-      formData.aboutInterviewer.length >= 20 &&
-      formData.aboutAudience.length >= 20 &&
-      formData.objectiveContext.length >= 20
-    );
-  }, [formData.aboutInterviewer, formData.aboutAudience, formData.objectiveContext]);
+  // Check if AI enhancement is enabled per field
+  const isAIEnabledForField = useCallback((field: AIFieldTarget): boolean => {
+    return formData[field].length >= 20;
+  }, [formData]);
 
   // Check if form is valid for proceeding
   const isFormValid = useMemo(() => {
     return (
       formData.projectName.length >= 3 &&
-      formData.aboutInterviewer.length >= 20 &&
-      formData.aboutAudience.length >= 20 &&
-      formData.objectiveContext.length >= 50
+      formData.objective.length >= 30 &&
+      formData.context.length >= 20
     );
   }, [formData]);
 
@@ -191,9 +226,8 @@ export const ProjectBasicsStep = forwardRef<ProjectBasicsStepRef, ProjectBasicsS
     const initial = initialDataRef.current;
     return (
       formData.projectName !== (initial?.projectName || "") ||
-      formData.aboutInterviewer !== (initial?.aboutInterviewer || "") ||
-      formData.aboutAudience !== (initial?.aboutAudience || "") ||
-      formData.objectiveContext !== (initial?.objectiveContext || "") ||
+      formData.objective !== (initial?.objective || "") ||
+      formData.context !== (initial?.context || "") ||
       formData.language !== (initial?.language || "English") ||
       formData.studyType !== (initial?.studyType || "structured") ||
       formData.interviewMode !== (initial?.interviewMode || "voice") ||
@@ -214,9 +248,8 @@ export const ProjectBasicsStep = forwardRef<ProjectBasicsStepRef, ProjectBasicsS
       // Mark all fields as touched
       setTouched({
         projectName: true,
-        aboutInterviewer: true,
-        aboutAudience: true,
-        objectiveContext: true,
+        objective: true,
+        context: true,
       });
       return validate();
     },
@@ -230,21 +263,23 @@ export const ProjectBasicsStep = forwardRef<ProjectBasicsStepRef, ProjectBasicsS
     },
   }), [formData, validate, isDirty, onSave]);
 
-  // Handle AI enhancement
-  const handleEnhanceWithAI = useCallback(async () => {
-    if (!isAIEnabled) return;
+  // Handle AI enhancement per field
+  const handleEnhanceWithAI = useCallback(async (field: AIFieldTarget) => {
+    if (!isAIEnabledForField(field)) return;
 
-    setOriginalObjective(formData.objectiveContext);
-    setAIState("loading");
+    setAIFields((prev) => ({
+      ...prev,
+      [field]: { state: "loading", enhancedText: "" },
+    }));
 
     try {
       const response = await fetch("/api/ai/enhance-objective", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          about_interviewer: formData.aboutInterviewer,
-          about_audience: formData.aboutAudience,
-          raw_objective: formData.objectiveContext,
+          field,
+          objective: formData.objective,
+          context: formData.context,
           language: formData.language,
         }),
       });
@@ -262,8 +297,10 @@ export const ProjectBasicsStep = forwardRef<ProjectBasicsStepRef, ProjectBasicsS
       }
 
       const data = await response.json();
-      setEnhancedObjective(data.enhanced_objective);
-      setAIState("preview");
+      setAIFields((prev) => ({
+        ...prev,
+        [field]: { state: "preview", enhancedText: data.enhanced_text },
+      }));
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "generic";
 
@@ -278,51 +315,51 @@ export const ProjectBasicsStep = forwardRef<ProjectBasicsStepRef, ProjectBasicsS
         description = "Please wait a moment and try again.";
       }
 
-      toast({
-        title,
-        description,
-        variant: "destructive",
-      });
-      setAIState("idle");
+      toast({ title, description, variant: "destructive" });
+      setAIFields((prev) => ({
+        ...prev,
+        [field]: { state: "idle", enhancedText: "" },
+      }));
     }
-  }, [formData, isAIEnabled, toast]);
+  }, [formData, isAIEnabledForField, toast]);
 
-  // Accept AI suggestion
-  const handleAcceptAI = useCallback(() => {
-    updateField("objectiveContext", enhancedObjective);
-    setAIState("idle");
-    setEnhancedObjective("");
-    setOriginalObjective("");
-  }, [enhancedObjective, updateField]);
+  // Accept AI suggestion for a field
+  const handleAcceptAI = useCallback((field: AIFieldTarget) => {
+    updateField(field, aiFields[field].enhancedText);
+    setAIFields((prev) => ({
+      ...prev,
+      [field]: { state: "idle", enhancedText: "" },
+    }));
+  }, [aiFields, updateField]);
 
-  // Edit AI suggestion (keep the text but allow editing)
-  const handleEditAI = useCallback(() => {
-    updateField("objectiveContext", enhancedObjective);
-    setAIState("idle");
-    setEnhancedObjective("");
-    setOriginalObjective("");
-  }, [enhancedObjective, updateField]);
+  // Edit AI suggestion (accept text but allow editing)
+  const handleEditAI = useCallback((field: AIFieldTarget) => {
+    updateField(field, aiFields[field].enhancedText);
+    setAIFields((prev) => ({
+      ...prev,
+      [field]: { state: "idle", enhancedText: "" },
+    }));
+  }, [aiFields, updateField]);
 
-  // Reject AI suggestion
-  const handleRejectAI = useCallback(() => {
-    setAIState("idle");
-    setEnhancedObjective("");
-    setOriginalObjective("");
+  // Reject AI suggestion for a field
+  const handleRejectAI = useCallback((field: AIFieldTarget) => {
+    setAIFields((prev) => ({
+      ...prev,
+      [field]: { state: "idle", enhancedText: "" },
+    }));
   }, []);
 
-  // Regenerate AI suggestion
-  const handleRegenerateAI = useCallback(() => {
-    handleEnhanceWithAI();
+  // Regenerate AI suggestion for a field
+  const handleRegenerateAI = useCallback((field: AIFieldTarget) => {
+    handleEnhanceWithAI(field);
   }, [handleEnhanceWithAI]);
 
   // Handle Next button
   const handleNext = useCallback(() => {
-    // Mark all fields as touched
     setTouched({
       projectName: true,
-      aboutInterviewer: true,
-      aboutAudience: true,
-      objectiveContext: true,
+      objective: true,
+      context: true,
     });
 
     if (validate() && onNext) {
@@ -337,20 +374,154 @@ export const ProjectBasicsStep = forwardRef<ProjectBasicsStepRef, ProjectBasicsS
     }
   }, [formData, onSaveDraft]);
 
+  // Check if any AI field is loading
+  const anyAILoading = aiFields.objective.state === "loading" || aiFields.context.state === "loading";
+
+  // Render a textarea with per-field AI enhancement
+  const renderAITextarea = (
+    field: AIFieldTarget,
+    id: string,
+    placeholder: string,
+    tooltipText: string,
+    label: string,
+  ) => {
+    const fieldState = aiFields[field];
+    const fieldError = errors[field];
+    const isTouched = touched[field];
+
+    return (
+      <div className="space-y-2">
+        <div className="flex items-center gap-1.5">
+          <Label htmlFor={id} className="text-sm font-medium text-gray-700">
+            {label}
+          </Label>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                className="inline-flex items-center justify-center w-4 h-4 rounded-full text-text-muted hover:text-text-default transition-colors"
+                aria-label={`${label} information`}
+              >
+                <Info className="w-3.5 h-3.5" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="top" className="max-w-xs">
+              <p>{tooltipText}</p>
+            </TooltipContent>
+          </Tooltip>
+        </div>
+
+        <div className="relative">
+          {fieldState.state === "loading" && (
+            <div className="absolute inset-0 bg-surface/80 backdrop-blur-sm rounded-xl z-10 flex items-center justify-center">
+              <div className="flex items-center gap-2 text-text-muted">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span className="text-body">Generating...</span>
+              </div>
+            </div>
+          )}
+
+          {fieldState.state === "preview" ? (
+            <div className="space-y-3">
+              <div className="relative">
+                <Textarea
+                  value={fieldState.enhancedText}
+                  onChange={(e) =>
+                    setAIFields((prev) => ({
+                      ...prev,
+                      [field]: { ...prev[field], enhancedText: e.target.value },
+                    }))
+                  }
+                  autoExpand
+                  className="bg-warning-50 border-warning-200 rounded-xl text-sm"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  onClick={() => handleAcceptAI(field)}
+                  className="bg-success-600 hover:bg-success-700"
+                >
+                  <Check className="w-4 h-4 mr-1" />
+                  Accept
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleEditAI(field)}
+                >
+                  <Pencil className="w-4 h-4 mr-1" />
+                  Edit
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleRejectAI(field)}
+                  className="text-danger-600 hover:text-danger-700 hover:bg-danger-50"
+                >
+                  <X className="w-4 h-4 mr-1" />
+                  Reject
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleRegenerateAI(field)}
+                  className="text-primary-600 hover:text-primary-700"
+                >
+                  <RotateCcw className="w-4 h-4 mr-1" />
+                  Regenerate
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="relative">
+              <Textarea
+                id={id}
+                value={formData[field]}
+                onChange={(e) => updateField(field, e.target.value)}
+                onBlur={() => handleBlur(field)}
+                placeholder={placeholder}
+                rows={2}
+                autoExpand
+                className={cn(
+                  "border-slate-200 rounded-xl text-sm text-slate-700 placeholder:text-slate-400 focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition pb-12",
+                  isTouched && fieldError && "border-danger-600 focus:ring-danger-600"
+                )}
+              />
+              {fieldState.state === "idle" && (
+                <button
+                  type="button"
+                  onClick={() => handleEnhanceWithAI(field)}
+                  disabled={!isAIEnabledForField(field)}
+                  className="absolute bottom-3 right-3 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-indigo-400 bg-white/90 backdrop-blur-sm border border-indigo-100 rounded-lg hover:text-indigo-600 hover:border-indigo-300 hover:bg-indigo-50 transition-all cursor-pointer shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  ✨ Enhance with AI
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+        {isTouched && fieldError && fieldState.state !== "preview" && (
+          <p className="text-caption text-danger-600">{fieldError}</p>
+        )}
+      </div>
+    );
+  };
+
   return (
     <TooltipProvider>
-      <div className="space-y-4">
+      <div className="space-y-7">
         {/* Project Name */}
         <div className="space-y-2">
-          <Label htmlFor="projectName" className="text-base font-medium">
-            Project Name <span className="text-danger-600">*</span>
+          <Label htmlFor="projectName" className="text-sm font-medium text-gray-700">
+            Project Name
           </Label>
           <Input
             id="projectName"
             value={formData.projectName}
             onChange={(e) => updateField("projectName", e.target.value)}
             onBlur={() => handleBlur("projectName")}
-            placeholder="Q1 Brand Perception Study"
+            placeholder="e.g. Brand Perception Study"
             maxLength={100}
             className={cn(
               "border-border-default",
@@ -362,356 +533,231 @@ export const ProjectBasicsStep = forwardRef<ProjectBasicsStepRef, ProjectBasicsS
           )}
         </div>
 
-        {/* About You */}
-        <div className="space-y-2">
-          <Label htmlFor="aboutInterviewer" className="text-base font-medium">
-            About You <span className="text-danger-600">*</span>
-          </Label>
-          <Textarea
-            id="aboutInterviewer"
-            value={formData.aboutInterviewer}
-            onChange={(e) => updateField("aboutInterviewer", e.target.value)}
-            onBlur={() => handleBlur("aboutInterviewer")}
-            placeholder="I'm the Head of Community at a fintech startup..."
-            autoExpand
-            className={cn(
-              "border-border-default",
-              touched.aboutInterviewer && errors.aboutInterviewer && "border-danger-600 focus:ring-danger-600"
-            )}
-          />
-          {touched.aboutInterviewer && errors.aboutInterviewer && (
-            <p className="text-caption text-danger-600">{errors.aboutInterviewer}</p>
+        {/* Section 1 — Research Objective */}
+        <div className="bg-slate-50/70 border border-slate-200 rounded-2xl p-6 space-y-6">
+          <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-5">Research Objective</h3>
+
+          {renderAITextarea(
+            "objective",
+            "objective",
+            "What do you want to learn from this research?",
+            "Define the core research question. What specific behaviors, attitudes, or experiences are you trying to understand? A clear objective helps the AI interviewer stay focused.",
+            "Objective"
+          )}
+
+          {renderAITextarea(
+            "context",
+            "context",
+            "What background or context should the AI interviewer know?",
+            "Provide background the AI interviewer needs: who you're talking to, why this research matters now, your company/product context, and any sensitivities to be aware of.",
+            "Context"
           )}
         </div>
 
-        {/* About Your Audience */}
-        <div className="space-y-2">
-          <Label htmlFor="aboutAudience" className="text-base font-medium">
-            About Your Audience <span className="text-danger-600">*</span>
-          </Label>
-          <Textarea
-            id="aboutAudience"
-            value={formData.aboutAudience}
-            onChange={(e) => updateField("aboutAudience", e.target.value)}
-            onBlur={() => handleBlur("aboutAudience")}
-            placeholder="Early adopters of our mobile app, mostly 25-40 year olds..."
-            autoExpand
-            className={cn(
-              "border-border-default",
-              touched.aboutAudience && errors.aboutAudience && "border-danger-600 focus:ring-danger-600"
-            )}
-          />
-          {touched.aboutAudience && errors.aboutAudience && (
-            <p className="text-caption text-danger-600">{errors.aboutAudience}</p>
-          )}
-        </div>
+        {/* Section 2 — Study Configuration */}
+        <div className="bg-slate-50/70 border border-slate-200 rounded-2xl p-6 space-y-6">
+          <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-5">Study Configuration</h3>
 
-        {/* Objective & Context */}
-        <div className="space-y-2">
-          <div className="flex items-center gap-2">
-            <Label htmlFor="objectiveContext" className="text-base font-medium">
-              Objective &amp; Context <span className="text-danger-600">*</span>
-            </Label>
-            {aiState === "idle" && (
+          {/* Language */}
+          <div className="space-y-2">
+            <div className="flex items-center gap-1.5">
+              <Label htmlFor="language" className="text-sm font-medium text-gray-700">
+                Interview Language
+              </Label>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <span>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleEnhanceWithAI}
-                      disabled={!isAIEnabled}
-                      className="h-6 px-2.5 text-xs font-medium rounded-full text-primary-600 hover:text-primary-700 hover:bg-primary-100 disabled:opacity-50"
-                    >
-                      <Sparkles className="w-3.5 h-3.5 mr-1.5" />
-                      Enhance with AI
-                    </Button>
-                  </span>
-                </TooltipTrigger>
-                {!isAIEnabled && (
-                  <TooltipContent>
-                    <p>Fill in the fields above to enable AI assistance</p>
-                  </TooltipContent>
-                )}
-              </Tooltip>
-            )}
-          </div>
-
-          <div className="relative">
-            {aiState === "loading" && (
-              <div className="absolute inset-0 bg-surface/80 backdrop-blur-sm rounded-sm z-10 flex items-center justify-center">
-                <div className="flex items-center gap-2 text-text-muted">
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span className="text-body">Generating...</span>
-                </div>
-              </div>
-            )}
-
-            {aiState === "preview" ? (
-              <div className="space-y-3">
-                <div className="relative">
-                  <Textarea
-                    value={enhancedObjective}
-                    onChange={(e) => setEnhancedObjective(e.target.value)}
-                    autoExpand
-                    className="bg-warning-50 border-warning-200"
-                  />
-                </div>
-                <div className="flex items-center gap-2">
-                  <Button
-                    size="sm"
-                    onClick={handleAcceptAI}
-                    className="bg-success-600 hover:bg-success-700"
-                  >
-                    <Check className="w-4 h-4 mr-1" />
-                    Accept
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleEditAI}
-                  >
-                    <Pencil className="w-4 h-4 mr-1" />
-                    Edit
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleRejectAI}
-                    className="text-danger-600 hover:text-danger-700 hover:bg-danger-50"
-                  >
-                    <X className="w-4 h-4 mr-1" />
-                    Reject
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleRegenerateAI}
-                    className="text-primary-600 hover:text-primary-700"
-                  >
-                    <RotateCcw className="w-4 h-4 mr-1" />
-                    Regenerate
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <Textarea
-                id="objectiveContext"
-                value={formData.objectiveContext}
-                onChange={(e) => updateField("objectiveContext", e.target.value)}
-                onBlur={() => handleBlur("objectiveContext")}
-                placeholder="We recently launched a new onboarding flow and want to understand how users felt about it..."
-                autoExpand
-                className={cn(
-                  "border-border-default",
-                  touched.objectiveContext && errors.objectiveContext && "border-danger-600 focus:ring-danger-600"
-                )}
-              />
-            )}
-          </div>
-          {touched.objectiveContext && errors.objectiveContext && aiState !== "preview" && (
-            <p className="text-caption text-danger-600">{errors.objectiveContext}</p>
-          )}
-        </div>
-
-        {/* Language */}
-        <div className="space-y-2">
-          <div className="flex items-center gap-1.5">
-            <Label htmlFor="language" className="text-base font-medium">
-              Interview Language <span className="text-danger-600">*</span>
-            </Label>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  type="button"
-                  className="inline-flex items-center justify-center w-4 h-4 rounded-full text-text-muted hover:text-text-default transition-colors"
-                  aria-label="Interview language information"
-                >
-                  <Info className="w-4 h-4" />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>The AI interviewer will conduct the interview and communicate with participants in this language</p>
-              </TooltipContent>
-            </Tooltip>
-          </div>
-          <Select
-            value={formData.language}
-            onValueChange={(value) => updateField("language", value as Language)}
-          >
-            <SelectTrigger id="language" className="w-full border-border-default">
-              <SelectValue placeholder="Select a language" />
-            </SelectTrigger>
-            <SelectContent>
-              {LANGUAGES.map((lang) => (
-                <SelectItem key={lang} value={lang}>
-                  {lang}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* Study Type */}
-        <div className="space-y-2">
-          <Label className="text-base font-medium">
-            Study Type <span className="text-danger-600">*</span>
-          </Label>
-          <RadioGroup
-            value={formData.studyType}
-            onValueChange={(value) => updateField("studyType", value as StudyType)}
-            className="space-y-3"
-          >
-            <div className="flex items-start gap-3">
-              <RadioGroupItem value="structured" id="study-type-structured" className="mt-0.5" />
-              <label htmlFor="study-type-structured" className="flex-1 cursor-pointer space-y-0.5">
-                <div className="font-medium text-text-primary text-sm">Structured Interview</div>
-                <p className="text-sm text-text-muted">
-                  AI follows your study flow step-by-step, asks specific questions, shows stimulus, uses all question types.
-                </p>
-              </label>
-            </div>
-            <div className="flex items-start gap-3">
-              <RadioGroupItem value="streaming" id="study-type-streaming" className="mt-0.5" />
-              <label htmlFor="study-type-streaming" className="flex-1 cursor-pointer space-y-0.5">
-                <div className="font-medium text-text-primary text-sm">Streaming Conversation</div>
-                <p className="text-sm text-text-muted">
-                  AI has a natural conversation covering your topics within time limits. More exploratory and conversational.
-                </p>
-              </label>
-            </div>
-          </RadioGroup>
-        </div>
-
-        {/* Interview Mode */}
-        <div className="space-y-2">
-          <div className="flex items-center gap-1.5">
-            <Label className="text-base font-medium">
-              Interview Mode <span className="text-danger-600">*</span>
-            </Label>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  type="button"
-                  className="inline-flex items-center justify-center w-4 h-4 rounded-full text-text-muted hover:text-text-default transition-colors"
-                  aria-label="Interview mode information"
-                >
-                  <Info className="w-4 h-4" />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Choose whether participants will respond using voice only or with video recording.</p>
-              </TooltipContent>
-            </Tooltip>
-          </div>
-          <RadioGroup
-            value={formData.interviewMode}
-            onValueChange={(value) => {
-              updateField("interviewMode", value as InterviewMode);
-              // Reset camera required when switching to voice
-              if (value === "voice") {
-                updateField("cameraRequired", false);
-              }
-            }}
-            className="space-y-3"
-          >
-            <div className="flex items-start gap-3">
-              <RadioGroupItem value="voice" id="interview-mode-voice" className="mt-0.5" />
-              <div className="flex items-start gap-2 flex-1">
-                <Mic className="w-4 h-4 text-text-muted mt-0.5 flex-shrink-0" />
-                <label htmlFor="interview-mode-voice" className="flex-1 cursor-pointer space-y-0.5">
-                  <div className="font-medium text-text-primary text-sm">Voice Interview</div>
-                  <p className="text-sm text-text-muted">Audio recording with transcription</p>
-                </label>
-              </div>
-            </div>
-            <div className="space-y-2">
-              <div className="flex items-start gap-3">
-                <RadioGroupItem value="video" id="interview-mode-video" className="mt-0.5" />
-                <div className="flex items-start gap-2 flex-1">
-                  <Video className="w-4 h-4 text-text-muted mt-0.5 flex-shrink-0" />
-                  <label htmlFor="interview-mode-video" className="flex-1 cursor-pointer space-y-0.5">
-                    <div className="font-medium text-text-primary text-sm">Video Interview</div>
-                    <p className="text-sm text-text-muted">Video recording with visual responses</p>
-                  </label>
-                </div>
-              </div>
-
-              {/* Camera Required Toggle - shown only when video is selected */}
-              {formData.interviewMode === "video" && (
-                <div className="pl-6 pt-2 flex items-center gap-2">
-                  <Label
-                    htmlFor="camera-required"
-                    className="text-sm text-text-primary cursor-pointer"
-                  >
-                    Require camera always on
-                  </Label>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <button
-                        type="button"
-                        className="text-text-tertiary hover:text-text-secondary transition-colors"
-                      >
-                        <Info className="h-3 w-3" />
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p className="max-w-xs">
-                        {formData.cameraRequired
-                          ? "Participants must keep their camera on. Interview pauses if camera is turned off."
-                          : "Camera is optional. Participants can turn off camera during interview."}
-                      </p>
-                    </TooltipContent>
-                  </Tooltip>
                   <button
-                    id="camera-required"
                     type="button"
-                    role="switch"
-                    aria-checked={formData.cameraRequired}
-                    onClick={() => updateField("cameraRequired", !formData.cameraRequired)}
-                    className={cn(
-                      "relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-border focus-visible:ring-offset-2 flex-shrink-0",
-                      formData.cameraRequired ? "bg-primary-600" : "bg-input"
-                    )}
+                    className="inline-flex items-center justify-center w-4 h-4 rounded-full text-text-muted hover:text-text-default transition-colors"
+                    aria-label="Interview language information"
                   >
-                    <span
-                      className={cn(
-                        "inline-block h-5 w-5 transform rounded-full bg-white transition-transform shadow-sm",
-                        formData.cameraRequired ? "translate-x-6" : "translate-x-0.5"
-                      )}
-                    />
+                    <Info className="w-3.5 h-3.5" />
                   </button>
-                </div>
-              )}
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>The AI interviewer will conduct the interview and communicate with participants in this language</p>
+                </TooltipContent>
+              </Tooltip>
             </div>
-          </RadioGroup>
+            <Select
+              value={formData.language}
+              onValueChange={(value) => updateField("language", value as Language)}
+            >
+              <SelectTrigger id="language" className="w-full border-border-default">
+                <SelectValue placeholder="Select a language" />
+              </SelectTrigger>
+              <SelectContent>
+                {LANGUAGES.map((lang) => (
+                  <SelectItem key={lang} value={lang}>
+                    {lang}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Study Type — Selection Cards */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-1.5">
+              <Label className="text-sm font-medium text-gray-700">
+                Study Type
+              </Label>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    className="inline-flex items-center justify-center w-4 h-4 rounded-full text-text-muted hover:text-text-default transition-colors"
+                    aria-label="Study type information"
+                  >
+                    <Info className="w-3.5 h-3.5" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent className="max-w-xs">
+                  <p>This determines how the AI interviewer runs the session. Structured follows your exact question flow; Streaming lets the AI have a natural conversation within your topic areas.</p>
+                </TooltipContent>
+              </Tooltip>
+            </div>
+            <div className="grid grid-cols-2 gap-4" role="radiogroup" aria-label="Study type">
+              <SelectionCard
+                id="study-type-structured"
+                selected={formData.studyType === "structured"}
+                onClick={() => updateField("studyType", "structured")}
+                icon={<ClipboardList className="w-5 h-5" />}
+                title="Structured Interview"
+                description="AI follows your study flow step-by-step, asks specific questions, shows stimulus, uses all question types."
+                bestFor="Best for: Concept testing, usability studies, surveys"
+              />
+              <SelectionCard
+                id="study-type-streaming"
+                selected={formData.studyType === "streaming"}
+                onClick={() => updateField("studyType", "streaming")}
+                icon={<MessageCircle className="w-5 h-5" />}
+                title="Streaming Conversation"
+                description="AI has a free flowing conversation covering your topics within time limits. More exploratory and conversational."
+                bestFor="Best for: Discovery research, exploratory interviews"
+              />
+            </div>
+          </div>
+
+          {/* Interview Mode — Selection Cards */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-1.5">
+              <Label className="text-sm font-medium text-gray-700">
+                Interview Mode
+              </Label>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    className="inline-flex items-center justify-center w-4 h-4 rounded-full text-text-muted hover:text-text-default transition-colors"
+                    aria-label="Interview mode information"
+                  >
+                    <Info className="w-3.5 h-3.5" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Choose whether participants will respond using voice only or with video recording.</p>
+                </TooltipContent>
+              </Tooltip>
+            </div>
+            <div className="grid grid-cols-2 gap-4" role="radiogroup" aria-label="Interview mode">
+              <SelectionCard
+                id="interview-mode-voice"
+                selected={formData.interviewMode === "voice"}
+                onClick={() => {
+                  updateField("interviewMode", "voice");
+                  updateField("cameraRequired", false);
+                }}
+                icon={<Mic className="w-5 h-5" />}
+                title="Voice Interview"
+                description="Audio recording with transcription. Lower barrier to entry for participants."
+                bestFor="Best for: Higher completion rates, sensitive topics"
+              />
+              <SelectionCard
+                id="interview-mode-video"
+                selected={formData.interviewMode === "video"}
+                onClick={() => updateField("interviewMode", "video")}
+                icon={<Video className="w-5 h-5" />}
+                title="Video Interview"
+                description="Video recording captures facial expressions and visual reactions alongside audio."
+                bestFor="Best for: UX testing, emotional response studies"
+              />
+            </div>
+
+            {/* Camera Required Toggle - shown only when video is selected */}
+            {formData.interviewMode === "video" && (
+              <div className="flex items-center gap-2 pl-1 pt-1">
+                <Label
+                  htmlFor="camera-required"
+                  className="text-sm text-text-primary cursor-pointer"
+                >
+                  Require camera always on
+                </Label>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      className="text-text-tertiary hover:text-text-secondary transition-colors"
+                    >
+                      <Info className="h-3 w-3" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="max-w-xs">
+                      {formData.cameraRequired
+                        ? "Participants must keep their camera on. Interview pauses if camera is turned off."
+                        : "Camera is optional. Participants can turn off camera during interview."}
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+                <button
+                  id="camera-required"
+                  type="button"
+                  role="switch"
+                  aria-checked={formData.cameraRequired}
+                  onClick={() => updateField("cameraRequired", !formData.cameraRequired)}
+                  className={cn(
+                    "relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-border focus-visible:ring-offset-2 flex-shrink-0",
+                    formData.cameraRequired ? "bg-primary-600" : "bg-input"
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "inline-block h-5 w-5 transform rounded-full bg-white transition-transform shadow-sm",
+                      formData.cameraRequired ? "translate-x-6" : "translate-x-0.5"
+                    )}
+                  />
+                </button>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Navigation Buttons - Hidden in embedded mode */}
         {!embedded && (
-          <div className="flex items-center justify-between pt-6 border-t border-border-subtle">
-            <Button
-              variant="outline"
-              size="sm"
+          <div className="sticky bottom-0 bg-white border-t border-gray-200 px-6 py-4 -mx-6 -mb-6 z-10 flex items-center justify-between">
+            <button
+              type="button"
               onClick={handleSaveDraft}
               disabled={isSaving}
-              className="rounded-full border-primary-600 text-primary-600 hover:bg-primary-50"
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition disabled:opacity-50"
             >
               {isSaving ? (
-                <Loader2 className="w-3 h-3 mr-1.5 animate-spin" />
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
               ) : (
-                <Save className="w-3 h-3 mr-1.5" />
+                <Save className="w-3.5 h-3.5" />
               )}
               Save Draft
-            </Button>
-            <Button
-              size="sm"
+            </button>
+            <button
+              type="button"
               onClick={handleNext}
-              disabled={!isFormValid || aiState === "loading"}
+              disabled={!isFormValid || anyAILoading}
+              className="inline-flex items-center gap-2 px-5 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Next
-              <ArrowRight className="w-3 h-3 ml-1.5" />
-            </Button>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
           </div>
         )}
       </div>

@@ -39,7 +39,7 @@ export const ProjectBasicsStepContent = forwardRef<
       const supabase = createClient();
       const { data: study, error } = await supabase
         .from("studies")
-        .select("title, about_interviewer, audience, objective, language, study_type, interview_mode, camera_required")
+        .select("title, objective, context, language, study_type, interview_mode, camera_required")
         .eq("id", studyId)
         .single();
 
@@ -53,9 +53,8 @@ export const ProjectBasicsStepContent = forwardRef<
       } else if (study) {
         setInitialData({
           projectName: study.title || "",
-          aboutInterviewer: study.about_interviewer || "",
-          aboutAudience: study.audience || "",
-          objectiveContext: study.objective || "",
+          objective: study.objective || "",
+          context: study.context || "",
           language: (study.language as ProjectBasicsFormData["language"]) || "English",
           studyType: (study.study_type as ProjectBasicsFormData["studyType"]) || "structured",
           interviewMode: (study.interview_mode as ProjectBasicsFormData["interviewMode"]) || "voice",
@@ -80,9 +79,8 @@ export const ProjectBasicsStepContent = forwardRef<
             .from("studies")
             .update({
               title: data.projectName,
-              about_interviewer: data.aboutInterviewer,
-              audience: data.aboutAudience,
-              objective: data.objectiveContext,
+              objective: data.objective,
+              context: data.context,
               language: data.language,
               study_type: data.studyType,
               interview_mode: data.interviewMode,
@@ -117,9 +115,8 @@ export const ProjectBasicsStepContent = forwardRef<
               user_id: user.id,
               title: data.projectName,
               status: "draft",
-              objective: data.objectiveContext,
-              audience: data.aboutAudience,
-              about_interviewer: data.aboutInterviewer,
+              objective: data.objective,
+              context: data.context,
               language: data.language,
               study_type: data.studyType,
               interview_mode: data.interviewMode,

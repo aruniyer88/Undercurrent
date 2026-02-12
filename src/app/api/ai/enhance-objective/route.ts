@@ -8,72 +8,76 @@ const openai = new OpenAI({
 
 // Input validation schema
 const RequestSchema = z.object({
-  about_interviewer: z.string().min(20, "About interviewer must be at least 20 characters"),
-  about_audience: z.string().min(20, "About audience must be at least 20 characters"),
-  raw_objective: z.string().min(20, "Raw objective must be at least 20 characters"),
+  field: z.enum(["objective", "context"]),
+  objective: z.string().min(1, "Objective is required"),
+  context: z.string().default(""),
   language: z.string().default("English"),
 });
 
 // Response type
 export type EnhanceObjectiveResponse = {
-  enhanced_objective: string;
+  enhanced_text: string;
   tokens_used: number;
 };
 
-const SYSTEM_PROMPT = `You are a senior qualitative researcher specializing in AI-led interviews. You help researchers transform rough inputs into clear, comprehensive research objectives that an AI interviewer can use as its north star.
+const OBJECTIVE_PROMPT = `You are a senior qualitative researcher specializing in AI-led interviews. Transform the user's rough research objective into a clear, structured objective an AI interviewer can use as its north star.
 
-CONTEXT PROVIDED BY USER:
-- Who they are: {{about_interviewer}}
-- Who they're interviewing: {{about_audience}}
-- Their initial objective/context: {{raw_objective}}
+CONTEXT:
+- Their research objective: {{objective}}
+- Background context: {{context}}
 - Interview language: {{language}}
 
-YOUR TASK:
-Transform their input into a polished research objective written in FIRST PERSON, as if the researcher wrote it themselves. Use "I want to understand...", "My goal is...", "I'm looking to explore...".
+Transform into a polished objective written in FIRST PERSON ("I want to understand...", "My goal is..."). Include:
+1. Core research statement (1-3 sentences) with a precise action verb (Understand, Explore, Identify, Evaluate, Assess)
+2. The target behavior or topic being investigated
+3. 2-3 specific dimensions to explore (e.g., attitudes, barriers, motivations, unmet needs)
+4. The intended insight or decision the findings will inform
 
-The output must include:
-1. A core research objective statement (1 to 3 sentences) that:
-   - Opens with a precise action verb (e.g., "Understand," "Explore," "Identify," "Evaluate," "Examine," "Assess"). Avoid vague phrasing like "learn about" or "look into."
-   - Names the target audience
-   - States the core behavior or topic being investigated
-   - Lists 2 to 3 specific dimensions to explore (e.g., usage patterns, attitudes, barriers, motivations, unmet needs)
-   - References the intended insight or decision the findings will inform
-2. Key themes to explore: 2 to 4 distinct topic areas the AI interviewer should cover
-3. Context the AI interviewer should keep in mind, including relationship dynamic, tone, and why this research matters
-4. Sensitivities or areas to approach carefully (only if apparent from the input)
-
-SMART CRITERIA:
-Ensure the objective is Specific (one clear focus), Measurable (tied to observable outcomes), Achievable (scoped to what a 10 to 15 minute AI interview can uncover), Relevant (aligned to a real decision or need), and Time-bound (if the user implies a timeline).
+Follow SMART criteria. Scope for a 10-15 minute AI-moderated interview.
 
 ADAPTIVE LENGTH:
-- SHORT INPUT (under roughly 30 words): The user has given a seed idea. Expand it into a rich, detailed objective of 150 to 300 words. Infer reasonable themes and dimensions based on who they are and who they are interviewing, but do not fabricate specifics they have not implied.
-- MEDIUM INPUT (roughly 30 to 150 words): Refine and enhance for clarity and structure. Aim for 150 to 300 words. Preserve their intent while adding depth and the structure above.
-- LONG INPUT (over roughly 150 words): The user has done significant thinking. Restructure and polish for clarity and flow. Use clear paragraph breaks. Open with the core objective, group related themes into cohesive paragraphs, and close with tone or sensitivity notes. Stay close to their original length.
+- Short input (<30 words): Expand to 100-200 words. Infer reasonable themes but don't fabricate specifics.
+- Medium (30-150 words): Refine and enhance for clarity and structure. 100-200 words.
+- Long (>150 words): Restructure and polish. Stay close to original length.
 
-FORMAT:
-Write in natural paragraphs, not bullet points. Professional but approachable tone. For longer outputs, each paragraph should have a clear focus (core objective, themes, context, sensitivities). Scope the objective narrowly enough for a 10 to 15 minute AI-moderated interview covering 5 to 7 core topics.
-
-DO NOT:
-- Add interview questions (those come later in the flow)
-- Make assumptions about specifics not provided
-- Use overly academic or market-research jargon unless the audience is domain-expert
-- Use vague, non-leading language. Be precise and intentional
-- Include meta-commentary about your task
-
+Write in natural paragraphs, not bullets. Professional but approachable. Do NOT add interview questions.
 Respond with ONLY the enhanced objective text.`;
+
+const CONTEXT_PROMPT = `You are a senior qualitative researcher specializing in AI-led interviews. Enrich the user's background context so an AI interviewer fully understands the research landscape.
+
+CONTEXT:
+- Their research objective: {{objective}}
+- Their background context: {{context}}
+- Interview language: {{language}}
+
+Expand into rich research context covering:
+1. Who is being interviewed — demographics, role, relationship to the topic
+2. Why this research matters now — business context, triggers, decisions it will inform
+3. Key themes the interviewer should explore and probe on
+4. Tone and approach considerations — formality level, pacing, rapport-building
+5. Sensitivities or areas to approach carefully (only if apparent from input)
+
+ADAPTIVE LENGTH:
+- Short input (<30 words): Expand to 100-200 words. Infer reasonable context but don't fabricate specifics.
+- Medium (30-150 words): Refine and structure. 100-200 words.
+- Long (>150 words): Restructure and polish. Stay close to original length.
+
+Write in natural paragraphs, not bullets. Professional but approachable. Do NOT add interview questions.
+Respond with ONLY the enhanced context text.`;
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const validatedInput = RequestSchema.parse(body);
 
-    const { about_interviewer, about_audience, raw_objective, language } = validatedInput;
+    const { field, objective, context, language } = validatedInput;
 
-    // Build the system prompt with user context
-    const filledSystemPrompt = SYSTEM_PROMPT
-      .replace("{{about_interviewer}}", about_interviewer)
-      .replace("{{about_audience}}", about_audience)
-      .replace("{{raw_objective}}", raw_objective)
+    // Select the appropriate prompt based on field
+    const templatePrompt = field === "objective" ? OBJECTIVE_PROMPT : CONTEXT_PROMPT;
+
+    const filledSystemPrompt = templatePrompt
+      .replace("{{objective}}", objective)
+      .replace("{{context}}", context)
       .replace("{{language}}", language);
 
     const completion = await openai.chat.completions.create({
@@ -82,7 +86,7 @@ export async function POST(request: NextRequest) {
         { role: "system", content: filledSystemPrompt },
         {
           role: "user",
-          content: "Please enhance my research objective based on the context provided.",
+          content: `Please enhance my research ${field} based on the context provided.`,
         },
       ],
       temperature: 0.7,
@@ -97,7 +101,7 @@ export async function POST(request: NextRequest) {
     const tokensUsed = completion.usage?.total_tokens || 0;
 
     const response: EnhanceObjectiveResponse = {
-      enhanced_objective: content.trim(),
+      enhanced_text: content.trim(),
       tokens_used: tokensUsed,
     };
 

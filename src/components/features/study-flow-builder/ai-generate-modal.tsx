@@ -74,8 +74,7 @@ export function AIGenerateModal({
           projectBasics: {
             title: study.title,
             objective: study.objective || "",
-            audience: study.audience || "",
-            aboutInterviewer: study.about_interviewer || "",
+            context: study.context || "",
             language: study.language || "English",
           },
           studyType: study.study_type || "structured",

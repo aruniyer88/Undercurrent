@@ -111,7 +111,7 @@ export function BriefChat() {
           objective: extractObjective(messages),
           topics: ["Topic 1", "Topic 2", "Topic 3"],
           success_criteria: "Gather actionable insights that inform key decisions.",
-          audience: extractAudience(messages),
+          context: extractAudience(messages),
           guidelines: "Maintain a conversational, non-leading approach. Ask follow-up questions to go deeper.",
           intro_text: "Thank you for taking the time to share your thoughts with us today.",
         })

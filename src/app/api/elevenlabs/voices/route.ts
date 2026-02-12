@@ -1,13 +1,10 @@
 import { NextResponse } from "next/server";
 import {
-  ElevenLabsVoicesResponse,
+  ElevenLabsSharedVoicesResponse,
   PresetVoice,
 } from "@/lib/elevenlabs/types";
 
-// Cache preset voices for 24 hours (they rarely change)
-export const revalidate = 86400;
-
-export async function GET() {
+export async function GET(request: Request) {
   const apiKey = process.env.ELEVENLABS_API_KEY;
 
   if (!apiKey) {
@@ -17,38 +14,35 @@ export async function GET() {
     );
   }
 
-  try {
-    // Fetch preset/premade voices from ElevenLabs v2 API
-    const response = await fetch(
-      "https://api.elevenlabs.io/v2/voices?category=premade&page_size=10",
-      {
-        headers: {
-          "xi-api-key": apiKey,
-        },
-        next: { revalidate: 86400 }, // Cache for 24 hours
-      }
-    );
+  const { searchParams } = new URL(request.url);
+  const language = searchParams.get("language") || "en";
 
-    if (!response.ok) {
-      const error = await response.json();
-      console.error("ElevenLabs API error:", error);
-      return NextResponse.json(
-        { error: "Failed to fetch voices from ElevenLabs" },
-        { status: response.status }
-      );
+  try {
+    // Try with use_cases filter first for higher quality conversational voices
+    let voices = await fetchSharedVoices(apiKey, language, true);
+
+    // Fallback: if fewer than 6 results, retry without use_cases filter
+    if (voices.length < 6) {
+      voices = await fetchSharedVoices(apiKey, language, false);
     }
 
-    const data: ElevenLabsVoicesResponse = await response.json();
-
     // Transform to our PresetVoice format
-    const presetVoices: PresetVoice[] = data.voices.map((voice) => ({
+    const presetVoices: PresetVoice[] = voices.map((voice) => ({
       id: `preset-${voice.voice_id}`,
       name: voice.name,
       type: "preset" as const,
-      description: voice.description || getDescriptionFromLabels(voice.labels),
+      description: getDescriptionFromSharedVoice(voice),
       provider_voice_id: voice.voice_id,
-      preview_url: voice.preview_url,
-      labels: voice.labels,
+      preview_url: voice.preview_url || null,
+      labels: {
+        ...(voice.gender && { gender: voice.gender }),
+        ...(voice.age && { age: voice.age }),
+        ...(voice.accent && { accent: voice.accent }),
+        ...(voice.descriptive && { description: voice.descriptive }),
+        ...(voice.use_case && { use_case: voice.use_case }),
+      },
+      language,
+      public_owner_id: voice.public_owner_id,
     }));
 
     return NextResponse.json({ voices: presetVoices });
@@ -61,27 +55,49 @@ export async function GET() {
   }
 }
 
-// Helper to generate description from labels if description is missing
-function getDescriptionFromLabels(labels: Record<string, string>): string {
+async function fetchSharedVoices(
+  apiKey: string,
+  language: string,
+  useConversationalFilter: boolean
+) {
+  const params = new URLSearchParams({
+    language,
+    page_size: "20",
+  });
+  if (useConversationalFilter) {
+    params.set("use_cases", "conversational");
+  }
+
+  const response = await fetch(
+    `https://api.elevenlabs.io/v1/shared-voices?${params.toString()}`,
+    {
+      headers: { "xi-api-key": apiKey },
+      next: { revalidate: 86400 }, // Cache per unique URL (per-language) for 24h
+    }
+  );
+
+  if (!response.ok) {
+    const error = await response.text();
+    console.error("ElevenLabs shared-voices error:", response.status, error);
+    return [];
+  }
+
+  const data: ElevenLabsSharedVoicesResponse = await response.json();
+  return data.voices || [];
+}
+
+function getDescriptionFromSharedVoice(voice: {
+  gender?: string;
+  age?: string;
+  accent?: string;
+  descriptive?: string;
+  use_case?: string;
+}): string {
   const parts: string[] = [];
-
-  if (labels.gender) {
-    parts.push(labels.gender);
-  }
-  if (labels.age) {
-    parts.push(labels.age);
-  }
-  if (labels.accent) {
-    parts.push(`${labels.accent} accent`);
-  }
-  if (labels.description) {
-    parts.push(labels.description);
-  }
-  if (labels.use_case) {
-    parts.push(`Good for ${labels.use_case}`);
-  }
-
-  return parts.length > 0
-    ? parts.join(", ")
-    : "Professional voice for interviews";
+  if (voice.gender) parts.push(voice.gender);
+  if (voice.age) parts.push(voice.age);
+  if (voice.accent) parts.push(`${voice.accent} accent`);
+  if (voice.descriptive) parts.push(voice.descriptive);
+  if (voice.use_case) parts.push(`Good for ${voice.use_case}`);
+  return parts.length > 0 ? parts.join(", ") : "Professional voice for interviews";
 }

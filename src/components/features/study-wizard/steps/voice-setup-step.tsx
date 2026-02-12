@@ -6,7 +6,7 @@ import { StepRef, StepContentProps } from "../wizard-types";
 import { createClient } from "@/lib/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Study, VoiceProfile } from "@/lib/types/database";
-import { PresetVoice } from "@/lib/elevenlabs/types";
+import { PresetVoice, STUDY_LANGUAGE_TO_ISO } from "@/lib/elevenlabs/types";
 
 export const VoiceSetupStepContent = forwardRef<StepRef, StepContentProps>(
   function VoiceSetupStepContent({ studyId, onValidationChange }, ref) {
@@ -37,8 +37,9 @@ export const VoiceSetupStepContent = forwardRef<StepRef, StepContentProps>(
           if (studyError) throw studyError;
           setStudy(studyData);
 
-          // Load preset voices from API
-          const voicesResponse = await fetch("/api/elevenlabs/voices");
+          // Load preset voices from API with language filter
+          const langCode = STUDY_LANGUAGE_TO_ISO[studyData.language || "English"] || "en";
+          const voicesResponse = await fetch(`/api/elevenlabs/voices?language=${langCode}`);
           if (voicesResponse.ok) {
             const voicesData = await voicesResponse.json();
             setPresetVoices(voicesData.voices || []);

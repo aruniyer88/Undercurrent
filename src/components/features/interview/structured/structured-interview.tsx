@@ -1,14 +1,21 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useInterview } from '../interview-context';
-import { ProgressBar } from '../shared/progress-bar';
-import { InterviewHeader } from '../shared/interview-header';
-import { AmbientOrb } from '../shared/ambient-orb';
+import { InterviewLayout } from './interview-layout';
+import { BottomControlBar } from './bottom-control-bar';
 import { QuestionRenderer } from './question-renderer';
-import { StimulusDisplay } from '../shared/stimulus-display';
-import type { StructuredInterviewProps, QuestionResponse, QuestionNavigationState, OrbState } from '@/lib/types/interview';
+import {
+  getLayoutVariant,
+  itemHasScreenUI,
+  type StructuredInterviewProps,
+  type QuestionResponse,
+  type QuestionNavigationState,
+  type OrbState,
+  type MicButtonState,
+} from '@/lib/types/interview';
+import { STUDY_LANGUAGE_TO_ISO } from '@/lib/elevenlabs/types';
 
 const questionVariants = {
   enter: { opacity: 0, x: 60 },
@@ -17,28 +24,75 @@ const questionVariants = {
 };
 
 export function StructuredInterview({ onComplete }: StructuredInterviewProps) {
-  const { sections, totalQuestions, audio, sessionId, voiceProfile, completeSession } = useInterview();
+  const {
+    study,
+    sections,
+    totalQuestions,
+    audio,
+    sessionId,
+    voiceProfile,
+    completeSession,
+    cameraStream,
+    isResuming,
+    resumeProgress,
+    pauseInterview,
+    setCurrentScreen,
+  } = useInterview();
 
-  const [nav, setNav] = useState<QuestionNavigationState>({
-    sectionIndex: 0,
-    itemIndex: 0,
-    questionNumber: 1,
+  // Initialize nav — from resume progress if available
+  const [nav, setNav] = useState<QuestionNavigationState>(() => {
+    if (resumeProgress) {
+      // Compute questionNumber from sectionIndex/itemIndex
+      let qn = 1;
+      for (let si = 0; si < resumeProgress.sectionIndex; si++) {
+        qn += (sections[si]?.items?.length || 0);
+      }
+      qn += resumeProgress.itemIndex;
+      return {
+        sectionIndex: resumeProgress.sectionIndex,
+        itemIndex: resumeProgress.itemIndex,
+        questionNumber: qn,
+      };
+    }
+    return { sectionIndex: 0, itemIndex: 0, questionNumber: 1 };
   });
+
   const [orbState, setOrbState] = useState<OrbState>('idle');
   const [questionReady, setQuestionReady] = useState(false);
+  const [currentAiText, setCurrentAiText] = useState('');
 
   const currentSection = sections[nav.sectionIndex];
   const currentItem = currentSection?.items?.[nav.itemIndex] ?? null;
   const hasStimulus = !!currentSection?.stimulus_type;
+  const hasScreenUI = currentItem ? itemHasScreenUI(currentItem.item_type) : false;
   const progress = (nav.questionNumber / totalQuestions) * 100;
   const voiceId = voiceProfile?.provider_voice_id;
+  const studyLangCode = STUDY_LANGUAGE_TO_ISO[study.language || 'English'] || 'en';
+  const isVideo = study.interview_mode === 'video';
 
-  // Destructure stable callbacks so the effect doesn't re-fire when
-  // transient audio state (ttsAnalyser, pipeline state, etc.) changes.
+  // Determine layout variant
+  const layoutVariant = useMemo(
+    () => getLayoutVariant(
+      isVideo ? 'video' : 'voice',
+      hasStimulus,
+      hasScreenUI
+    ),
+    [isVideo, hasStimulus, hasScreenUI]
+  );
+
+  // Derive mic button state from audio pipeline + orb state
+  const micState: MicButtonState = useMemo(() => {
+    if (audio.state === 'recording') return 'recording';
+    if (audio.state === 'transcribing') return 'processing';
+    if (audio.state === 'playing' || audio.state === 'synthesizing') return 'ai-speaking';
+    return 'ready';
+  }, [audio.state]);
+
+  // Stable callbacks to avoid re-triggering TTS effect
   const speakFn = audio.speak;
   const stopSpeakingFn = audio.stopSpeaking;
 
-  // Read question aloud via TTS when it changes.
+  // Read question aloud via TTS when it changes
   useEffect(() => {
     let cancelled = false;
 
@@ -53,10 +107,11 @@ export function StructuredInterview({ onComplete }: StructuredInterviewProps) {
       return;
     }
 
-    // Add warm greeting for first question
+    // Build text to speak
     let textToSpeak = questionText;
-    if (nav.questionNumber === 1) {
-      // Calculate total time estimate
+
+    // Add warm greeting for first question (skip on resume)
+    if (nav.questionNumber === 1 && !isResuming) {
       const totalSeconds = sections.reduce((sum, s) => sum + (s.time_limit_seconds || 120), 0);
       const totalMinutes = Math.round(totalSeconds / 60);
       const timeEstimate = totalMinutes <= 10
@@ -68,14 +123,14 @@ export function StructuredInterview({ onComplete }: StructuredInterviewProps) {
         : `about ${Math.round(totalMinutes / 10) * 10} minutes`;
 
       const greeting = `Hi! Thank you so much for joining this interview. Before we begin, I want to let you know this conversation should take ${timeEstimate}. We'll be having a natural discussion, so feel free to take your time with your responses. If you need to pause at any point, just let me know. Ready? Let's start with the first question: `;
-
       textToSpeak = greeting + questionText;
     }
 
+    setCurrentAiText(questionText);
     setQuestionReady(false);
     setOrbState('speaking');
 
-    speakFn(textToSpeak, voiceId, sessionId ?? undefined).then(() => {
+    speakFn(textToSpeak, voiceId, sessionId ?? undefined, studyLangCode).then(() => {
       if (cancelled) return;
       setOrbState('idle');
       setQuestionReady(true);
@@ -89,7 +144,33 @@ export function StructuredInterview({ onComplete }: StructuredInterviewProps) {
       cancelled = true;
       stopSpeakingFn();
     };
-  }, [nav.sectionIndex, nav.itemIndex, nav.questionNumber, currentItem, voiceId, sessionId, sections, speakFn, stopSpeakingFn]);
+  }, [nav.sectionIndex, nav.itemIndex, nav.questionNumber, currentItem, voiceId, sessionId, sections, speakFn, stopSpeakingFn, isResuming, studyLangCode]);
+
+  // Handle mic button interactions
+  const handleMicClick = useCallback(() => {
+    if (micState === 'ready') {
+      audio.startRecording();
+      setOrbState('listening');
+    } else if (micState === 'recording') {
+      // Stop recording → transcribe → auto-submit for open-ended
+      setOrbState('thinking');
+      audio.stopRecording(sessionId ?? undefined).then((transcription) => {
+        if (transcription && currentItem) {
+          handleSubmit({
+            flowItemId: currentItem.id,
+            textResponse: transcription,
+          });
+        } else {
+          setOrbState('idle');
+        }
+      });
+    } else if (micState === 'ai-speaking') {
+      // Interrupt TTS and start recording
+      audio.interruptAndRecord(sessionId ?? undefined);
+      setOrbState('listening');
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [micState, audio, sessionId, currentItem]);
 
   const handleSubmit = useCallback(
     async (response: QuestionResponse) => {
@@ -108,6 +189,8 @@ export function StructuredInterview({ onComplete }: StructuredInterviewProps) {
               ranked_items: response.rankedItems || null,
               conversation_transcript: response.conversationTranscript || null,
               conversation_duration_seconds: response.conversationDurationSeconds ?? null,
+              current_section_index: nav.sectionIndex,
+              current_item_index: nav.itemIndex,
             }),
           });
         } catch (err) {
@@ -130,7 +213,6 @@ export function StructuredInterview({ onComplete }: StructuredInterviewProps) {
           questionNumber: prev.questionNumber + 1,
         }));
       } else {
-        // Complete the session before transitioning
         await completeSession();
         onComplete();
       }
@@ -138,40 +220,36 @@ export function StructuredInterview({ onComplete }: StructuredInterviewProps) {
     [sessionId, currentSection, nav, sections, onComplete, completeSession]
   );
 
+  const handlePause = useCallback(async () => {
+    audio.stopSpeaking();
+    await pauseInterview();
+    setCurrentScreen('paused');
+  }, [audio, pauseInterview, setCurrentScreen]);
+
   const questionKey = currentItem
     ? `${nav.sectionIndex}-${nav.itemIndex}`
     : 'empty';
 
-  const activeAnalyser = orbState === 'speaking' ? audio.ttsAnalyser : null;
+  // For open-ended items, the mic button handles submission.
+  // For screen UI items (selects, rating, ranking), the renderer handles submission.
+  const showScreenUI = hasScreenUI && currentItem;
 
   return (
-    <div className="min-h-[100dvh] flex flex-col bg-neutral-50">
-      {/* Progress */}
-      <ProgressBar progress={progress} />
-
-      {/* Header */}
-      <InterviewHeader
-        questionNumber={nav.questionNumber}
-        totalQuestions={totalQuestions}
-        className="px-6 py-3 border-b border-neutral-200"
-      />
-
-      {/* Content Area */}
-      <div className="flex-1 flex flex-col md:flex-row">
-        {/* Stimulus (left on desktop, top on mobile) */}
-        {hasStimulus && (
-          <div className="md:w-1/2 max-h-[40vh] md:max-h-none overflow-auto border-b md:border-b-0 md:border-r border-neutral-200">
-            <StimulusDisplay
-              type={currentSection.stimulus_type!}
-              config={currentSection.stimulus_config}
-            />
-          </div>
-        )}
-
-        {/* Question + Response Area */}
-        <div className={`flex-1 flex flex-col items-center justify-center p-6 ${hasStimulus ? '' : 'max-w-2xl mx-auto w-full'}`}>
-          <AnimatePresence mode="wait">
-            {currentItem && (
+    <div className="min-h-[100dvh] relative">
+      {/* Layout — handles all 8 variants */}
+      {currentSection && (
+        <InterviewLayout
+          variant={layoutVariant}
+          aiText={currentAiText}
+          audioState={audio.state}
+          cameraStream={cameraStream}
+          section={currentSection}
+          orbState={orbState}
+          ttsAnalyser={audio.ttsAnalyser}
+        >
+          {/* Question UI (only rendered for screen UI items) */}
+          {showScreenUI && (
+            <AnimatePresence mode="wait">
               <motion.div
                 key={questionKey}
                 variants={questionVariants}
@@ -179,7 +257,6 @@ export function StructuredInterview({ onComplete }: StructuredInterviewProps) {
                 animate="center"
                 exit="exit"
                 transition={{ duration: 0.3, ease: 'easeInOut' }}
-                className="w-full"
               >
                 <QuestionRenderer
                   item={currentItem}
@@ -188,28 +265,23 @@ export function StructuredInterview({ onComplete }: StructuredInterviewProps) {
                   audio={audio}
                   isActive={questionReady}
                   sessionId={sessionId ?? undefined}
+                  variant={hasStimulus ? 'compact' : 'default'}
                 />
               </motion.div>
-            )}
-          </AnimatePresence>
+            </AnimatePresence>
+          )}
+        </InterviewLayout>
+      )}
 
-          {/* Small orb below the question */}
-          <div className="mt-6">
-            <AmbientOrb
-              state={orbState}
-              size="small"
-              analyserNode={activeAnalyser}
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Footer */}
-      <div className="p-3 text-center border-t border-neutral-200">
-        <p className="text-xs text-neutral-400">
-          Powered by Undercurrent
-        </p>
-      </div>
+      {/* Bottom Control Bar — always visible */}
+      <BottomControlBar
+        micState={micState}
+        onMicClick={handleMicClick}
+        onPause={handlePause}
+        progress={progress}
+        audio={audio}
+        showCamera={isVideo}
+      />
     </div>
   );
 }

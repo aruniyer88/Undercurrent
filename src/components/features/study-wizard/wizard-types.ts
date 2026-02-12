@@ -112,9 +112,8 @@ export interface StepContentProps {
 export interface StudySummary {
   // Project Basics
   projectName: string;
-  aboutInterviewer: string;
-  aboutAudience: string;
-  objectiveContext: string;
+  objective: string;
+  context: string;
   language: string;
 
   // Study Flow

@@ -11,8 +11,7 @@ const RequestSchema = z.object({
   projectBasics: z.object({
     title: z.string().min(1),
     objective: z.string().min(10),
-    audience: z.string().min(10),
-    aboutInterviewer: z.string().optional(),
+    context: z.string().optional(),
     language: z.string().optional(),
   }),
   studyType: z.enum(["structured", "streaming"]).default("structured"),
@@ -59,7 +58,7 @@ const buildSystemPrompt = (studyType: "structured" | "streaming") => {
     ? `        {
           "type": "open_ended",
           "questionText": "string",
-          "probingMode": "auto",
+          "probingMode": "disabled",
           "responseMode": "voice"
         },
         {
@@ -75,7 +74,7 @@ const buildSystemPrompt = (studyType: "structured" | "streaming") => {
     : `        {
           "type": "open_ended",
           "questionText": "string",
-          "probingMode": "auto",
+          "probingMode": "disabled",
           "responseMode": "voice"
         },
         {
@@ -161,8 +160,7 @@ export async function POST(request: NextRequest) {
 PROJECT CONTEXT:
 - Project Name: ${projectBasics.title}
 - Objective: ${projectBasics.objective}
-- Target Audience: ${projectBasics.audience}
-${projectBasics.aboutInterviewer ? `- Interviewer Context: ${projectBasics.aboutInterviewer}` : ""}
+${projectBasics.context ? `- Research Context: ${projectBasics.context}` : ""}
 ${projectBasics.language ? `- Language: ${projectBasics.language}` : ""}
 ${additionalDetails ? `\nADDITIONAL DETAILS/RESEARCH PLAN:\n${additionalDetails}` : ""}
 

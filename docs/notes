@@ -1,0 +1,9 @@
+That is a valid concern..Actually for the AI interviewer personality, don't generate this personality like during runtime and pass it on to the AI during runtime.
+
+Basically, what you can do is generate the AI personality based on objective and context. After the user has created all of the questions in the study flow table in the study flow section and provided all the project basics information, use all of that information to generate the AI personality and store that as a separate column. Then use that in the provide that to 11 labs in the system prompt.
+
+That way I think there is at least like a fixed prompt that is customized for that study, rather than asking the AI to pull all of this information, synthesize it, and then figure out what the personality is. You are being explicit about the personality 
+There is also a change where the interview type (voice vs. video) and the toggle that goes along with the video that section needs to be moved into the project basics section from the study flow section 
+Also just evaluate if the probing field that you had added before makes sense to keep it that way or if it makes sense to use the existing probing_mode in item_config jsonb 
+
+In terms of the persona of the AI interviewer that is obviously provided in the objective and context section by the user and that will be passed on to the personality of the AI interviewer 

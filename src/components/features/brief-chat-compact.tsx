@@ -110,7 +110,7 @@ export function BriefChatCompact() {
           objective: promptText,
           topics: [],
           success_criteria: "",
-          audience: "",
+          context: "",
           guidelines: "Maintain a conversational, non-leading approach. Ask follow-up questions to go deeper.",
           intro_text: "Thank you for taking the time to share your thoughts with us today.",
         })

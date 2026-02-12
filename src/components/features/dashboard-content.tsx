@@ -436,7 +436,7 @@ export function DashboardContent({ studies }: DashboardContentProps) {
       <div className="sticky top-0 z-10 border-b border-border-subtle" style={{ backgroundColor: '#fafafa' }}>
         <div className="max-w-[1200px] mx-auto px-8 py-5 flex items-center justify-between">
           <div>
-            <h1 className="text-h1 text-text-primary">Projects</h1>
+            <h1 className="text-h1 text-text-primary">My Projects</h1>
           </div>
           <Button
             onClick={() => router.push("/studies/wizard")}

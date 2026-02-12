@@ -28,7 +28,6 @@ export async function POST(request: NextRequest) {
       session_id,
       study_objective,
       ai_persona_prompt,
-      section_title,
       question_text,
       participant_response,
       conversation_history,
@@ -53,7 +52,6 @@ export async function POST(request: NextRequest) {
     const systemPrompt = buildSystemPrompt({
       study_objective,
       ai_persona_prompt,
-      section_title,
       study_type,
     });
 
@@ -126,12 +124,10 @@ export async function POST(request: NextRequest) {
 function buildSystemPrompt({
   study_objective,
   ai_persona_prompt,
-  section_title,
   study_type,
 }: {
   study_objective?: string;
   ai_persona_prompt?: string;
-  section_title?: string;
   study_type?: string;
 }): string {
   return `You are an AI interviewer conducting a qualitative research interview.

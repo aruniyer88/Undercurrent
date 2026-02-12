@@ -141,7 +141,7 @@ function transformDBItemToUI(item: DBFlowItem, order: number): FlowItem {
         type: "open_ended",
         questionText: item.question_text || "",
         probingMode: (config.probing_mode as "disabled" | "auto") || "auto",
-        responseMode: (item.response_mode as "voice" | "text") || "voice",
+        responseMode: "voice" as const,
       };
     case "single_select":
       return {

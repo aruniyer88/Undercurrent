@@ -39,6 +39,37 @@ export interface ElevenLabsError {
   };
 }
 
+// Shared Voice Library types (from /v1/shared-voices)
+export interface ElevenLabsSharedVoice {
+  public_owner_id: string;
+  voice_id: string;
+  name: string;
+  category: string;
+  gender: string;
+  age: string;
+  accent: string;
+  descriptive: string;
+  use_case: string;
+  language: string;
+  locale: string;
+  description: string;
+  preview_url: string;
+  free_users_allowed: boolean;
+  usage_character_count_1y: number;
+  verified_languages?: Array<{
+    language: string;
+    model_id: string;
+    accent: string;
+    locale: string;
+    preview_url: string;
+  }>;
+}
+
+export interface ElevenLabsSharedVoicesResponse {
+  voices: ElevenLabsSharedVoice[];
+  has_more: boolean;
+}
+
 // Transformed types for frontend use
 export interface PresetVoice {
   id: string;
@@ -48,7 +79,25 @@ export interface PresetVoice {
   provider_voice_id: string;
   preview_url: string | null;
   labels: Record<string, string>;
+  language?: string;
+  public_owner_id?: string;
 }
+
+// Language mapping: study language name → ISO code
+export const STUDY_LANGUAGE_TO_ISO: Record<string, string> = {
+  "English": "en",
+  "Hindi": "hi",
+  "Spanish": "es",
+  "French": "fr",
+};
+
+// ISO code → display info
+export const ISO_TO_LANGUAGE_DISPLAY: Record<string, { label: string; flag: string }> = {
+  "en": { label: "English", flag: "\u{1F1FA}\u{1F1F8}" },
+  "hi": { label: "Hindi", flag: "\u{1F1EE}\u{1F1F3}" },
+  "es": { label: "Spanish", flag: "\u{1F1EA}\u{1F1F8}" },
+  "fr": { label: "French", flag: "\u{1F1EB}\u{1F1F7}" },
+};
 
 // Language options for voice recording
 export type RecordingLanguage = "english" | "french" | "hindi" | "other";

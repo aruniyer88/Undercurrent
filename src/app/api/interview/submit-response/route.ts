@@ -25,6 +25,8 @@ export async function POST(request: NextRequest) {
       conversation_transcript,
       conversation_duration_seconds,
       conversation_turn,
+      current_section_index,
+      current_item_index,
     } = body;
 
     if (!session_id) {
@@ -108,6 +110,17 @@ export async function POST(request: NextRequest) {
         { error: 'Failed to store response' },
         { status: 500 }
       );
+    }
+
+    // Update session progress indices (non-blocking)
+    if (current_section_index !== undefined && current_item_index !== undefined) {
+      await supabase
+        .from('interview_sessions')
+        .update({
+          current_section_index,
+          current_item_index,
+        })
+        .eq('id', session_id);
     }
 
     return NextResponse.json({ response });

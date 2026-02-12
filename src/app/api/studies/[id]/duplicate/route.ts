@@ -41,13 +41,12 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         status: "draft", // Always start as draft
         project_type: originalStudy.project_type,
         objective: originalStudy.objective,
+        context: originalStudy.context,
         topics: originalStudy.topics,
         success_criteria: originalStudy.success_criteria,
-        audience: originalStudy.audience,
         guidelines: originalStudy.guidelines,
         intro_text: originalStudy.intro_text,
         brief_messages: originalStudy.brief_messages,
-        about_interviewer: originalStudy.about_interviewer,
         language: originalStudy.language,
         // Don't copy voice_profile_id, published_at, closed_at
       })

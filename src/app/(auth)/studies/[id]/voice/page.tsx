@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import { VoiceSetup } from "@/components/features/voice-setup";
 import { Study, VoiceProfile } from "@/lib/types/database";
-import { PresetVoice } from "@/lib/elevenlabs/types";
+import { PresetVoice, STUDY_LANGUAGE_TO_ISO } from "@/lib/elevenlabs/types";
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -20,7 +20,9 @@ const FALLBACK_PRESET_VOICES: PresetVoice[] = [
     description: "American, young, calm and conversational",
     provider_voice_id: "21m00Tcm4TlvDq8ikWAM",
     preview_url: null,
-    labels: { accent: "American", age: "young" }
+    labels: { accent: "American", age: "young" },
+    language: "en",
+    public_owner_id: "",
   },
   {
     id: "preset-AZnzlk1XvdvUeBnXmlld",
@@ -29,7 +31,9 @@ const FALLBACK_PRESET_VOICES: PresetVoice[] = [
     description: "American, young, expressive and confident",
     provider_voice_id: "AZnzlk1XvdvUeBnXmlld",
     preview_url: null,
-    labels: { accent: "American", age: "young" }
+    labels: { accent: "American", age: "young" },
+    language: "en",
+    public_owner_id: "",
   },
   {
     id: "preset-EXAVITQu4vr4xnSDxMaL",
@@ -38,7 +42,9 @@ const FALLBACK_PRESET_VOICES: PresetVoice[] = [
     description: "American, young, soft and warm",
     provider_voice_id: "EXAVITQu4vr4xnSDxMaL",
     preview_url: null,
-    labels: { accent: "American", age: "young" }
+    labels: { accent: "American", age: "young" },
+    language: "en",
+    public_owner_id: "",
   },
   {
     id: "preset-pNInz6obpgDQGcFmaJgB",
@@ -47,19 +53,21 @@ const FALLBACK_PRESET_VOICES: PresetVoice[] = [
     description: "American, middle-aged, deep and authoritative",
     provider_voice_id: "pNInz6obpgDQGcFmaJgB",
     preview_url: null,
-    labels: { accent: "American", age: "middle-aged" }
+    labels: { accent: "American", age: "middle-aged" },
+    language: "en",
+    public_owner_id: "",
   }
 ];
 
-async function fetchPresetVoices(): Promise<PresetVoice[]> {
+async function fetchPresetVoices(language: string = "en"): Promise<PresetVoice[]> {
   try {
     // Fetch from our API route (which calls ElevenLabs)
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL ||
                     process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` :
                     'http://localhost:3000';
 
-    const response = await fetch(`${baseUrl}/api/elevenlabs/voices`, {
-      next: { revalidate: 86400 }, // Cache for 24 hours
+    const response = await fetch(`${baseUrl}/api/elevenlabs/voices?language=${language}`, {
+      next: { revalidate: 86400 }, // Cache for 24 hours (per-language via unique URL)
     });
 
     if (!response.ok) {
@@ -79,17 +87,20 @@ export default async function VoiceSetupPage({ params }: VoiceSetupPageProps) {
   const { id } = await params;
   const supabase = await createClient();
 
-  // Fetch study and preset voices in parallel
-  const [studyResult, presetVoices] = await Promise.all([
-    supabase.from("studies").select("*").eq("id", id).single(),
-    fetchPresetVoices()
-  ]);
-
-  const { data: study, error: studyError } = studyResult;
+  // Fetch study first (need language for voice filtering)
+  const { data: study, error: studyError } = await supabase
+    .from("studies")
+    .select("*")
+    .eq("id", id)
+    .single();
 
   if (studyError || !study) {
     notFound();
   }
+
+  // Fetch preset voices with study language
+  const langCode = STUDY_LANGUAGE_TO_ISO[study.language || "English"] || "en";
+  const presetVoices = await fetchPresetVoices(langCode);
 
   // Fetch user's custom voice profiles
   const { data: customVoices } = await supabase

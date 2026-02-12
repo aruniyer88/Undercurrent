@@ -50,7 +50,7 @@ export interface OpenEndedItem extends BaseItem {
   type: 'open_ended';
   questionText: string;
   probingMode: ProbingMode;
-  responseMode: 'voice' | 'text';
+  responseMode: 'voice';
 }
 
 // Single select question
@@ -202,8 +202,7 @@ export interface GenerateStudyFlowInput {
   projectBasics: {
     title: string;
     objective: string;
-    audience: string;
-    aboutInterviewer: string;
+    context: string;
     language: string;
   };
   additionalDetails?: string;

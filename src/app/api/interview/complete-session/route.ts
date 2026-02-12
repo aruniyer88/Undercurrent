@@ -31,6 +31,7 @@ export async function POST(request: NextRequest) {
       .from('interview_sessions')
       .update({
         completed_at: new Date().toISOString(),
+        session_status: 'completed',
       })
       .eq('id', session_id);
 

@@ -134,6 +134,103 @@ export async function POST(request: NextRequest) {
   }
 }
 
+export async function DELETE(request: NextRequest) {
+  const apiKey = process.env.ELEVENLABS_API_KEY;
+
+  if (!apiKey) {
+    return NextResponse.json(
+      { error: "ElevenLabs API key not configured" },
+      { status: 500 }
+    );
+  }
+
+  try {
+    // Authenticate user
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { voice_profile_id } = await request.json();
+
+    if (!voice_profile_id) {
+      return NextResponse.json(
+        { error: "voice_profile_id is required" },
+        { status: 400 }
+      );
+    }
+
+    // Fetch the voice profile (RLS ensures user owns it)
+    const { data: voiceProfile, error: fetchError } = await supabase
+      .from("voice_profiles")
+      .select("id, provider_voice_id, type")
+      .eq("id", voice_profile_id)
+      .single();
+
+    if (fetchError || !voiceProfile) {
+      return NextResponse.json(
+        { error: "Voice profile not found" },
+        { status: 404 }
+      );
+    }
+
+    if (voiceProfile.type !== "cloned") {
+      return NextResponse.json(
+        { error: "Only cloned voices can be deleted" },
+        { status: 400 }
+      );
+    }
+
+    // Delete from ElevenLabs if provider_voice_id exists
+    if (voiceProfile.provider_voice_id) {
+      const elevenLabsResponse = await fetch(
+        `https://api.elevenlabs.io/v1/voices/${voiceProfile.provider_voice_id}`,
+        {
+          method: "DELETE",
+          headers: {
+            "xi-api-key": apiKey,
+          },
+        }
+      );
+
+      // Log but don't fail if ElevenLabs deletion fails (voice may already be gone)
+      if (!elevenLabsResponse.ok) {
+        console.warn(
+          "ElevenLabs voice deletion failed:",
+          elevenLabsResponse.status,
+          await elevenLabsResponse.text()
+        );
+      }
+    }
+
+    // Delete from voice_profiles table
+    const { error: deleteError } = await supabase
+      .from("voice_profiles")
+      .delete()
+      .eq("id", voice_profile_id);
+
+    if (deleteError) {
+      console.error("Database error deleting voice profile:", deleteError);
+      return NextResponse.json(
+        { error: "Failed to delete voice profile" },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("Error deleting voice clone:", error);
+    return NextResponse.json(
+      { error: "Failed to delete voice clone" },
+      { status: 500 }
+    );
+  }
+}
+
 function mapElevenLabsError(error: unknown): string {
   if (typeof error === "object" && error !== null) {
     const detail = (error as { detail?: { message?: string; status?: string } })
