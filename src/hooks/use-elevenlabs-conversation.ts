@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { Conversation } from '@11labs/client';
-import type { Mode, Status } from '@11labs/client';
+import { Conversation } from '@elevenlabs/client';
+import type { Mode, Status } from '@elevenlabs/client';
 import type { OrbState, ConversationEntry } from '@/lib/types/interview';
 
 interface UseElevenLabsConversationOptions {

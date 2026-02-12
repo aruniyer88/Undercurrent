@@ -76,7 +76,7 @@ function VideoSetupLayout({
   devices,
   onStart,
 }: {
-  videoRef: React.RefObject<HTMLVideoElement>;
+  videoRef: React.RefObject<HTMLVideoElement | null>;
   devices: ReturnType<typeof import('@/hooks/use-media-devices').useMediaDevices>;
   onStart: () => void;
 }) {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, X } from "lucide-react";
 import { ProjectBasicsStep, ProjectBasicsFormData } from "@/components/features/project-basics-step";
@@ -9,16 +9,16 @@ import { createClient } from "@/lib/supabase/client";
 import { Study } from "@/lib/types/database";
 
 interface StudyBasicsPageProps {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 export default function StudyBasicsPage({ params }: StudyBasicsPageProps) {
+  const { id: studyId } = use(params);
   const router = useRouter();
   const { toast } = useToast();
   const [study, setStudy] = useState<Study | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const studyId = params.id;
 
   // Fetch study data
   useEffect(() => {
